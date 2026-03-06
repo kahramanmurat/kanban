@@ -157,13 +157,13 @@ Implement persistent backend APIs for reading and mutating a signed-in user's bo
 
 ### Checklist
 
-- [ ] Add database initialization so the SQLite database is created if it does not exist.
-- [ ] Implement data access code for users, boards, columns, and cards.
-- [ ] Seed or create the default board for the MVP user as needed.
-- [ ] Add authenticated API routes to fetch the current board.
-- [ ] Add authenticated API routes to update board structure and card content.
-- [ ] Validate request payloads and return stable API responses.
-- [ ] Document the backend API contract at a lightweight level.
+- [x] Add database initialization so the SQLite database is created if it does not exist.
+- [x] Implement data access code for users, boards, columns, and cards.
+- [x] Seed or create the default board for the MVP user as needed.
+- [x] Add authenticated API routes to fetch the current board.
+- [x] Add authenticated API routes to update board structure and card content.
+- [x] Validate request payloads and return stable API responses.
+- [x] Document the backend API contract at a lightweight level.
 
 ### Tests
 

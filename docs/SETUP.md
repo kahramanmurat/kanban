@@ -7,6 +7,7 @@ The current scaffold runs a FastAPI backend that serves:
 - the exported Kanban frontend at `/`
 - a JSON endpoint at `/api/health`
 - a login flow at `/login`
+- database-backed board APIs under `/api/board`, `/api/columns/...`, and `/api/cards/...`
 
 ## Start commands
 
@@ -44,4 +45,5 @@ Or use the matching helper script for your platform.
 - Part 3 now builds the Next.js frontend as a static export inside Docker and serves it through FastAPI.
 - Part 4 requires sign-in before the board is visible.
 - Demo credentials: `user` / `password`
+- The SQLite database is created automatically at `backend/data/pm.sqlite3`.
 - Authentication, database persistence, and AI connectivity will be added in later phases.
