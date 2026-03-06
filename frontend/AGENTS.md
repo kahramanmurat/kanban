@@ -2,7 +2,7 @@
 
 ## Purpose
 
-This `frontend/` directory contains the current frontend for the Project Management MVP. It is a statically exported Next.js application served by the FastAPI backend. It now includes the MVP login experience and uses the backend board APIs for persistence, but it still has no AI features yet.
+This `frontend/` directory contains the current frontend for the Project Management MVP. It is a statically exported Next.js application served by the FastAPI backend. It now includes the MVP login experience, backend-backed board persistence, and an AI chat sidebar for board operations.
 
 ## Current stack
 
@@ -25,7 +25,9 @@ This `frontend/` directory contains the current frontend for the Project Managem
 
 - `src/components/KanbanBoard.tsx`
   - Loads the board from the backend and updates local UI state from API responses.
-  - Handles drag and drop, renaming columns, adding cards, and deleting cards.
+  - Handles drag and drop, renaming columns, adding cards, deleting cards, and AI-triggered board refreshes.
+- `src/components/AIChatSidebar.tsx`
+  - Renders the sidebar chat UI, local message history, loading states, and AI request form.
 - `src/components/KanbanColumn.tsx`
   - Renders a single column and its cards.
 - `src/components/KanbanCard.tsx`
@@ -41,7 +43,7 @@ This `frontend/` directory contains the current frontend for the Project Managem
 - `src/lib/kanban.ts`
   - Defines the board types and drag-order helper logic shared by the frontend.
 - `src/lib/boardApi.ts`
-  - Wraps the backend board routes used by the frontend.
+  - Wraps the backend board routes and AI board route used by the frontend.
 
 ## Current behavior
 
@@ -53,18 +55,20 @@ This `frontend/` directory contains the current frontend for the Project Managem
 - Users can drag cards within a column and across columns.
 - Users can log out from the board header.
 - Board changes are loaded from and saved through the backend API.
+- Users can chat with the AI sidebar and see the board refresh when AI updates are applied.
 
 ## Important limitations
 
 - The board still uses a simple client-side fetch-and-refresh approach rather than advanced optimistic syncing.
-- There is no AI sidebar or AI-driven board update flow.
+- Chat history is kept in frontend state for the current session instead of being persisted.
 
 ## Testing
 
 - `src/lib/kanban.test.ts` covers the card movement helper logic.
-- `src/components/KanbanBoard.test.tsx` covers key board interactions in component tests.
+- `src/components/KanbanBoard.test.tsx` covers key board interactions plus AI-driven board refreshes in component tests.
+- `src/components/AIChatSidebar.test.tsx` covers chat rendering, input submission, loading state, and error handling.
 - `src/components/LoginForm.test.tsx` and `src/components/LogoutButton.test.tsx` cover the auth UI actions.
-- `tests/kanban.spec.ts` covers auth gating, sign-in, logout, and a signed-in board interaction flow with persistence across refresh.
+- `tests/kanban.spec.ts` covers auth gating, sign-in, logout, persisted board changes, and the AI sidebar flow.
 
 ## Notes for future work
 

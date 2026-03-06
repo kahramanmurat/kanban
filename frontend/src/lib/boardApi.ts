@@ -1,5 +1,20 @@
 import type { BoardData } from "@/lib/kanban";
 
+export type AIChatMessage = {
+  role: "user" | "assistant";
+  content: string;
+};
+
+export type AIChatOperation = {
+  type: string;
+} & Record<string, unknown>;
+
+export type AIChatResponse = {
+  assistantMessage: string;
+  board: BoardData;
+  appliedOperations: AIChatOperation[];
+};
+
 const toErrorMessage = (response: Response, fallback: string) => {
   if (response.status === 401) {
     return "Your session expired. Redirecting to login.";
@@ -12,11 +27,22 @@ const redirectToLogin = () => {
   window.location.assign("/login");
 };
 
-const requestBoard = async (
+const readErrorMessage = async (response: Response, fallback: string) => {
+  try {
+    const payload = (await response.json()) as { detail?: unknown };
+    if (typeof payload.detail === "string" && payload.detail.trim()) {
+      return payload.detail;
+    }
+  } catch {}
+
+  return toErrorMessage(response, fallback);
+};
+
+const requestJson = async <T>(
   input: RequestInfo | URL,
   init: RequestInit,
   fallbackMessage: string
-): Promise<BoardData> => {
+): Promise<T> => {
   const response = await fetch(input, {
     credentials: "same-origin",
     ...init,
@@ -28,17 +54,17 @@ const requestBoard = async (
   }
 
   if (!response.ok) {
-    throw new Error(toErrorMessage(response, fallbackMessage));
+    throw new Error(await readErrorMessage(response, fallbackMessage));
   }
 
-  return (await response.json()) as BoardData;
+  return (await response.json()) as T;
 };
 
 export const fetchBoard = () =>
-  requestBoard("/api/board", { method: "GET" }, "Unable to load the board.");
+  requestJson<BoardData>("/api/board", { method: "GET" }, "Unable to load the board.");
 
 export const renameColumn = (columnId: string, title: string) =>
-  requestBoard(
+  requestJson<BoardData>(
     `/api/columns/${columnId}`,
     {
       method: "PATCH",
@@ -51,7 +77,7 @@ export const renameColumn = (columnId: string, title: string) =>
   );
 
 export const addCard = (columnId: string, title: string, details: string) =>
-  requestBoard(
+  requestJson<BoardData>(
     `/api/columns/${columnId}/cards`,
     {
       method: "POST",
@@ -64,7 +90,7 @@ export const addCard = (columnId: string, title: string, details: string) =>
   );
 
 export const moveCard = (cardId: string, columnId: string, position: number) =>
-  requestBoard(
+  requestJson<BoardData>(
     `/api/cards/${cardId}`,
     {
       method: "PATCH",
@@ -77,10 +103,23 @@ export const moveCard = (cardId: string, columnId: string, position: number) =>
   );
 
 export const deleteCard = (cardId: string) =>
-  requestBoard(
+  requestJson<BoardData>(
     `/api/cards/${cardId}`,
     {
       method: "DELETE",
     },
     "Unable to delete the card."
+  );
+
+export const sendAiBoardMessage = (message: string, history: AIChatMessage[]) =>
+  requestJson<AIChatResponse>(
+    "/api/ai/board",
+    {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({ message, history }),
+    },
+    "Unable to contact the AI assistant."
   );

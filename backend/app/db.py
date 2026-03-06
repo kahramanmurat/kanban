@@ -363,6 +363,22 @@ def clamp_position(position: int | None, length: int) -> int:
     return max(0, min(position, length))
 
 
+def move_card_to_temporary_slot(
+    connection: sqlite3.Connection,
+    card_id: str,
+    column_id: str,
+    minimum_position: int,
+) -> None:
+    connection.execute(
+        """
+        UPDATE cards
+        SET column_id = ?, position = ?, updated_at = ?
+        WHERE id = ?
+        """,
+        (column_id, minimum_position, utc_now(), card_id),
+    )
+
+
 def resequence_column(connection: sqlite3.Connection, column_id: str, card_ids: list[str]) -> None:
     timestamp = utc_now()
     for index, card_id in enumerate(card_ids):
@@ -478,6 +494,12 @@ def update_card(
             target_cards = list_card_ids(connection, target_column_id)
             insert_at = clamp_position(position, len(target_cards))
             target_cards.insert(insert_at, card_id)
+            move_card_to_temporary_slot(
+                connection,
+                card_id,
+                target_column_id,
+                -(len(target_cards) + 1),
+            )
             resequence_column(connection, source_column_id, remaining_source_cards)
             resequence_column(connection, target_column_id, target_cards)
 

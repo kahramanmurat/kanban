@@ -160,3 +160,21 @@ def test_board_changes_persist_across_app_restarts(tmp_path, monkeypatch) -> Non
         board = board_response.json()
         review_column = next(column for column in board["columns"] if column["id"] == "col-review")
         assert review_column["title"] == "Ready"
+
+
+def test_move_from_middle_of_column_succeeds(tmp_path, monkeypatch) -> None:
+    with create_client(tmp_path, monkeypatch) as client:
+        client.post("/api/login", json={"username": "user", "password": "password"})
+
+        response = client.patch(
+            "/api/cards/card-1",
+            json={"columnId": "col-progress", "position": 1},
+        )
+
+        assert response.status_code == 200
+        board = response.json()
+        backlog_column = next(column for column in board["columns"] if column["id"] == "col-backlog")
+        progress_column = next(column for column in board["columns"] if column["id"] == "col-progress")
+
+        assert backlog_column["cardIds"] == ["card-2"]
+        assert progress_column["cardIds"] == ["card-4", "card-1", "card-5"]

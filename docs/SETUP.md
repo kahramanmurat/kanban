@@ -52,3 +52,4 @@ Or use the matching helper script for your platform.
 - `OPENAI_MODEL` is optional and overrides the backend default model, which is currently `gpt-5-mini`.
 - After signing in, `POST /api/ai/connectivity` runs a narrow `2+2` check against the configured model.
 - After signing in, `POST /api/ai/board` accepts a user `message` plus optional `history` and returns an `assistantMessage`, `appliedOperations`, and the latest `board`.
+- The main board page now includes an AI sidebar that sends those `/api/ai/board` requests and refreshes the UI from the returned board snapshot.

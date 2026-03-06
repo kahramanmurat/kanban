@@ -270,12 +270,12 @@ Add a polished sidebar chat experience that uses the AI backend and automaticall
 
 ### Checklist
 
-- [ ] Design and build the sidebar layout to fit the existing Kanban UI.
-- [ ] Add chat input, message history, loading states, and error states.
-- [ ] Wire the sidebar to the backend AI endpoint.
-- [ ] Refresh or reconcile board state after AI-driven updates.
-- [ ] Preserve a clear distinction between conversational responses and board changes.
-- [ ] Keep the experience visually aligned with the project's color system.
+- [x] Design and build the sidebar layout to fit the existing Kanban UI.
+- [x] Add chat input, message history, loading states, and error states.
+- [x] Wire the sidebar to the backend AI endpoint.
+- [x] Refresh or reconcile board state after AI-driven updates.
+- [x] Preserve a clear distinction between conversational responses and board changes.
+- [x] Keep the experience visually aligned with the project's color system.
 
 ### Tests
 

@@ -141,6 +141,46 @@ def test_ai_board_route_applies_operations_and_persists_changes(tmp_path, monkey
         assert new_card_id in next(column for column in persisted["columns"] if column["id"] == "col-backlog")["cardIds"]
 
 
+def test_ai_board_route_moves_card_from_middle_of_source_column(tmp_path, monkeypatch) -> None:
+    monkeypatch.setenv("OPENAI_API_KEY", "test-key")
+    fake_client, _ = create_fake_client(
+        json.dumps(
+            {
+                "assistantMessage": "I moved Align roadmap themes into In Progress.",
+                "boardChange": {
+                    "operations": [
+                        {
+                            "type": "move_card",
+                            "cardId": "card-1",
+                            "columnId": "col-progress",
+                            "position": 1,
+                        }
+                    ]
+                },
+            }
+        )
+    )
+    monkeypatch.setattr("app.ai.create_openai_client", lambda api_key: fake_client)
+
+    with create_client(tmp_path, monkeypatch) as client:
+        client.post("/api/login", json={"username": "user", "password": "password"})
+        response = client.post(
+            "/api/ai/board",
+            json={"message": 'Move "Align roadmap themes" to In Progress.'},
+        )
+
+        assert response.status_code == 200
+        body = response.json()
+        backlog_column = next(column for column in body["board"]["columns"] if column["id"] == "col-backlog")
+        progress_column = next(column for column in body["board"]["columns"] if column["id"] == "col-progress")
+
+        assert backlog_column["cardIds"] == ["card-2"]
+        assert progress_column["cardIds"] == ["card-4", "card-1", "card-5"]
+        assert body["appliedOperations"] == [
+            {"type": "move_card", "cardId": "card-1", "columnId": "col-progress", "position": 1}
+        ]
+
+
 def test_ai_board_route_rejects_malformed_model_output(tmp_path, monkeypatch) -> None:
     monkeypatch.setenv("OPENAI_API_KEY", "test-key")
     fake_client, _ = create_fake_client("not json at all")

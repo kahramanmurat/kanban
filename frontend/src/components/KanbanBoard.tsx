@@ -8,19 +8,24 @@ import {
   useSensor,
   useSensors,
   closestCorners,
+  pointerWithin,
   type DragEndEvent,
   type DragStartEvent,
 } from "@dnd-kit/core";
+import { AIChatSidebar } from "@/components/AIChatSidebar";
 import { KanbanColumn } from "@/components/KanbanColumn";
 import { KanbanCardPreview } from "@/components/KanbanCardPreview";
 import { LogoutButton } from "@/components/LogoutButton";
 import { moveCard as moveCardColumns, type BoardData } from "@/lib/kanban";
 import {
+  type AIChatMessage,
+  type AIChatResponse,
   addCard,
   deleteCard,
   fetchBoard,
   moveCard,
   renameColumn,
+  sendAiBoardMessage,
 } from "@/lib/boardApi";
 
 export const KanbanBoard = () => {
@@ -133,12 +138,31 @@ export const KanbanBoard = () => {
     void runMutation(() => deleteCard(cardId));
   };
 
+  const handleSendAiMessage = async (
+    message: string,
+    history: AIChatMessage[]
+  ): Promise<AIChatResponse> => {
+    if (!board) {
+      throw new Error("The board is still loading.");
+    }
+
+    setIsSaving(true);
+
+    try {
+      const response = await sendAiBoardMessage(message, history);
+      setBoard(response.board);
+      return response;
+    } finally {
+      setIsSaving(false);
+    }
+  };
+
   const activeCard = activeCardId ? cardsById[activeCardId] : null;
 
   if (isLoading) {
     return (
       <div className="relative overflow-hidden">
-        <main className="relative mx-auto flex min-h-screen max-w-[1500px] items-center justify-center px-6 py-16">
+        <main className="relative mx-auto flex min-h-screen max-w-[1680px] items-center justify-center px-6 py-16">
           <div className="rounded-[32px] border border-[var(--stroke)] bg-white/90 px-8 py-6 shadow-[var(--shadow)]">
             <p className="text-sm font-semibold uppercase tracking-[0.25em] text-[var(--gray-text)]">
               Loading board
@@ -152,7 +176,7 @@ export const KanbanBoard = () => {
   if (!board) {
     return (
       <div className="relative overflow-hidden">
-        <main className="relative mx-auto flex min-h-screen max-w-[1500px] items-center justify-center px-6 py-16">
+        <main className="relative mx-auto flex min-h-screen max-w-[1680px] items-center justify-center px-6 py-16">
           <div className="max-w-md rounded-[32px] border border-[var(--stroke)] bg-white/90 px-8 py-6 shadow-[var(--shadow)]">
             <h1 className="font-display text-2xl font-semibold text-[var(--navy-dark)]">
               Unable to load the board
@@ -178,7 +202,7 @@ export const KanbanBoard = () => {
       <div className="pointer-events-none absolute left-0 top-0 h-[420px] w-[420px] -translate-x-1/3 -translate-y-1/3 rounded-full bg-[radial-gradient(circle,_rgba(32,157,215,0.25)_0%,_rgba(32,157,215,0.05)_55%,_transparent_70%)]" />
       <div className="pointer-events-none absolute bottom-0 right-0 h-[520px] w-[520px] translate-x-1/4 translate-y-1/4 rounded-full bg-[radial-gradient(circle,_rgba(117,57,145,0.18)_0%,_rgba(117,57,145,0.05)_55%,_transparent_75%)]" />
 
-      <main className="relative mx-auto flex min-h-screen max-w-[1500px] flex-col gap-10 px-6 pb-16 pt-12">
+      <main className="relative mx-auto flex min-h-screen max-w-[1680px] flex-col gap-10 px-6 pb-16 pt-12">
         <header className="flex flex-col gap-6 rounded-[32px] border border-[var(--stroke)] bg-white/80 p-8 shadow-[var(--shadow)] backdrop-blur">
           <div className="flex flex-wrap items-start justify-between gap-6">
             <div>
@@ -190,7 +214,8 @@ export const KanbanBoard = () => {
               </h1>
               <p className="mt-3 max-w-xl text-sm leading-6 text-[var(--gray-text)]">
                 Keep momentum visible. Rename columns, drag cards between stages,
-                and capture quick notes without getting buried in settings.
+                capture quick notes, and ask the AI sidebar to update the board
+                without getting buried in settings.
               </p>
             </div>
             <div className="flex items-start gap-4">
@@ -230,22 +255,30 @@ export const KanbanBoard = () => {
 
         <DndContext
           sensors={sensors}
-          collisionDetection={closestCorners}
+          collisionDetection={(args) => {
+            const pointerHits = pointerWithin(args);
+            return pointerHits.length > 0 ? pointerHits : closestCorners(args);
+          }}
           onDragStart={handleDragStart}
           onDragEnd={handleDragEnd}
         >
-          <section className="grid gap-6 lg:grid-cols-5">
-            {board.columns.map((column) => (
-              <KanbanColumn
-                key={column.id}
-                column={column}
-                cards={column.cardIds.map((cardId) => board.cards[cardId])}
-                onRename={handleRenameColumn}
-                onAddCard={handleAddCard}
-                onDeleteCard={handleDeleteCard}
-              />
-            ))}
-          </section>
+          <div className="grid items-start gap-6 xl:grid-cols-[minmax(0,1fr)_300px]">
+            <section className="overflow-x-auto pb-2">
+              <div className="grid min-w-[1200px] grid-cols-5 gap-6">
+                {board.columns.map((column) => (
+                  <KanbanColumn
+                    key={column.id}
+                    column={column}
+                    cards={column.cardIds.map((cardId) => board.cards[cardId])}
+                    onRename={handleRenameColumn}
+                    onAddCard={handleAddCard}
+                    onDeleteCard={handleDeleteCard}
+                  />
+                ))}
+              </div>
+            </section>
+            <AIChatSidebar onSend={handleSendAiMessage} />
+          </div>
           <DragOverlay>
             {activeCard ? (
               <div className="w-[260px]">

@@ -3,13 +3,14 @@ import userEvent from "@testing-library/user-event";
 import { afterEach, vi } from "vitest";
 import { KanbanBoard } from "@/components/KanbanBoard";
 import { initialData, type BoardData } from "@/lib/kanban";
+import type { AIChatResponse } from "@/lib/boardApi";
 
 const cloneBoard = (board: BoardData): BoardData => structuredClone(board);
 
-const createResponse = (board: BoardData) => ({
+const createResponse = <T,>(payload: T) => ({
   ok: true,
   status: 200,
-  json: async () => board,
+  json: async () => payload,
 });
 
 afterEach(() => {
@@ -104,5 +105,60 @@ describe("KanbanBoard", () => {
     await waitFor(() =>
       expect(within(column).queryByText("New card")).not.toBeInTheDocument()
     );
+  });
+
+  it("shows AI replies and refreshes the board from the AI response", async () => {
+    const aiBoard = cloneBoard(initialData);
+    aiBoard.cards["card-ai"] = {
+      id: "card-ai",
+      title: "AI follow-up",
+      details: "Created by the assistant.",
+    };
+    aiBoard.columns[0].cardIds.push("card-ai");
+
+    const aiResponse: AIChatResponse = {
+      assistantMessage: "I added an AI follow-up card to Backlog.",
+      board: aiBoard,
+      appliedOperations: [
+        {
+          type: "add_card",
+          columnId: "col-backlog",
+          title: "AI follow-up",
+          details: "Created by the assistant.",
+        },
+      ],
+    };
+
+    const fetchMock = vi
+      .fn()
+      .mockResolvedValueOnce(createResponse(cloneBoard(initialData)))
+      .mockResolvedValueOnce(createResponse(aiResponse));
+
+    vi.stubGlobal("fetch", fetchMock);
+
+    render(<KanbanBoard />);
+
+    await screen.findAllByTestId(/column-/i);
+    await userEvent.type(
+      screen.getByLabelText("Ask AI to update the board"),
+      "Add a follow-up card to Backlog"
+    );
+    await userEvent.click(screen.getByRole("button", { name: "Send" }));
+
+    await waitFor(() =>
+      expect(fetchMock).toHaveBeenLastCalledWith(
+        "/api/ai/board",
+        expect.objectContaining({
+          method: "POST",
+          credentials: "same-origin",
+        })
+      )
+    );
+
+    expect(
+      await screen.findByText("I added an AI follow-up card to Backlog.")
+    ).toBeInTheDocument();
+    expect(await screen.findByText("AI follow-up")).toBeInTheDocument();
+    expect(screen.getByText("1 board update applied")).toBeInTheDocument();
   });
 });
