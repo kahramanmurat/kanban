@@ -23,11 +23,15 @@ test("signs in and loads the kanban board", async ({ page }) => {
 test("allows board interaction after sign-in", async ({ page }) => {
   await login(page);
   const firstColumn = page.locator('[data-testid^="column-"]').first();
+  const cardTitle = `Playwright card ${Date.now()}`;
   await firstColumn.getByRole("button", { name: /add a card/i }).click();
-  await firstColumn.getByPlaceholder("Card title").fill("Playwright card");
+  await firstColumn.getByPlaceholder("Card title").fill(cardTitle);
   await firstColumn.getByPlaceholder("Details").fill("Added via e2e.");
   await firstColumn.getByRole("button", { name: /add card/i }).click();
-  await expect(firstColumn.getByText("Playwright card")).toBeVisible();
+  await expect(firstColumn.getByText(cardTitle)).toBeVisible();
+
+  await page.reload();
+  await expect(firstColumn.getByText(cardTitle)).toBeVisible();
 });
 
 test("logs out and blocks board access again", async ({ page }) => {

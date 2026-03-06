@@ -1,27 +1,87 @@
-import { render, screen, within } from "@testing-library/react";
+import { render, screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
+import { afterEach, vi } from "vitest";
 import { KanbanBoard } from "@/components/KanbanBoard";
+import { initialData, type BoardData } from "@/lib/kanban";
 
-const getFirstColumn = () => screen.getAllByTestId(/column-/i)[0];
+const cloneBoard = (board: BoardData): BoardData => structuredClone(board);
+
+const createResponse = (board: BoardData) => ({
+  ok: true,
+  status: 200,
+  json: async () => board,
+});
+
+afterEach(() => {
+  vi.unstubAllGlobals();
+});
 
 describe("KanbanBoard", () => {
-  it("renders five columns", () => {
+  it("renders five columns from the backend board", async () => {
+    vi.stubGlobal(
+      "fetch",
+      vi.fn().mockResolvedValue(createResponse(cloneBoard(initialData)))
+    );
+
     render(<KanbanBoard />);
-    expect(screen.getAllByTestId(/column-/i)).toHaveLength(5);
+
+    expect(await screen.findAllByTestId(/column-/i)).toHaveLength(5);
   });
 
-  it("renames a column", async () => {
+  it("renames a column through the backend API", async () => {
+    const renamedBoard = cloneBoard(initialData);
+    renamedBoard.columns[0].title = "New Name";
+
+    const fetchMock = vi
+      .fn()
+      .mockResolvedValueOnce(createResponse(cloneBoard(initialData)))
+      .mockResolvedValueOnce(createResponse(renamedBoard));
+
+    vi.stubGlobal("fetch", fetchMock);
+
     render(<KanbanBoard />);
-    const column = getFirstColumn();
+
+    const column = (await screen.findAllByTestId(/column-/i))[0];
     const input = within(column).getByLabelText("Column title");
+
     await userEvent.clear(input);
     await userEvent.type(input, "New Name");
-    expect(input).toHaveValue("New Name");
+    await userEvent.tab();
+
+    await waitFor(() =>
+      expect(fetchMock).toHaveBeenLastCalledWith(
+        "/api/columns/col-backlog",
+        expect.objectContaining({
+          method: "PATCH",
+          credentials: "same-origin",
+        })
+      )
+    );
+    await waitFor(() => expect(input).toHaveValue("New Name"));
   });
 
-  it("adds and removes a card", async () => {
+  it("adds and removes a card through the backend API", async () => {
+    const boardWithNewCard = cloneBoard(initialData);
+    boardWithNewCard.cards["card-new"] = {
+      id: "card-new",
+      title: "New card",
+      details: "Notes",
+    };
+    boardWithNewCard.columns[0].cardIds.push("card-new");
+
+    const boardWithoutNewCard = cloneBoard(initialData);
+
+    const fetchMock = vi
+      .fn()
+      .mockResolvedValueOnce(createResponse(cloneBoard(initialData)))
+      .mockResolvedValueOnce(createResponse(boardWithNewCard))
+      .mockResolvedValueOnce(createResponse(boardWithoutNewCard));
+
+    vi.stubGlobal("fetch", fetchMock);
+
     render(<KanbanBoard />);
-    const column = getFirstColumn();
+
+    const column = (await screen.findAllByTestId(/column-/i))[0];
     const addButton = within(column).getByRole("button", {
       name: /add a card/i,
     });
@@ -34,13 +94,15 @@ describe("KanbanBoard", () => {
 
     await userEvent.click(within(column).getByRole("button", { name: /add card/i }));
 
-    expect(within(column).getByText("New card")).toBeInTheDocument();
+    expect(await within(column).findByText("New card")).toBeInTheDocument();
 
     const deleteButton = within(column).getByRole("button", {
       name: /delete new card/i,
     });
     await userEvent.click(deleteButton);
 
-    expect(within(column).queryByText("New card")).not.toBeInTheDocument();
+    await waitFor(() =>
+      expect(within(column).queryByText("New card")).not.toBeInTheDocument()
+    );
   });
 });

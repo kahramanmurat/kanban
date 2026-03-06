@@ -135,7 +135,7 @@ Define and document a simple relational SQLite schema that supports the MVP boar
 - [x] Define how one board is associated with one signed-in user for the MVP while preserving future extensibility.
 - [x] Document migration and database initialization expectations.
 - [x] Write the schema proposal in `docs/`.
-- [ ] Get explicit user sign-off on the schema proposal before implementing persistence APIs.
+- [x] Get explicit user sign-off on the schema proposal before implementing persistence APIs.
 
 ### Tests
 
@@ -186,12 +186,12 @@ Replace in-memory frontend state initialization with real API-driven persistence
 
 ### Checklist
 
-- [ ] Add a frontend API layer for auth-aware board loading and mutations.
-- [ ] Load the initial board from the backend after authentication.
-- [ ] Replace direct local-only board mutations with backend-backed updates.
-- [ ] Handle loading, error, and optimistic or non-optimistic update states in a simple way.
-- [ ] Refresh the UI from persisted backend state after mutations.
-- [ ] Keep the existing board interactions and styling intact.
+- [x] Add a frontend API layer for auth-aware board loading and mutations.
+- [x] Load the initial board from the backend after authentication.
+- [x] Replace direct local-only board mutations with backend-backed updates.
+- [x] Handle loading, error, and optimistic or non-optimistic update states in a simple way.
+- [x] Refresh the UI from persisted backend state after mutations.
+- [x] Keep the existing board interactions and styling intact.
 
 ### Tests
 

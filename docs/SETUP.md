@@ -46,4 +46,5 @@ Or use the matching helper script for your platform.
 - Part 4 requires sign-in before the board is visible.
 - Demo credentials: `user` / `password`
 - The SQLite database is created automatically at `backend/data/pm.sqlite3`.
+- Board changes now persist through the backend API, so refresh and re-login should keep your updates.
 - Authentication, database persistence, and AI connectivity will be added in later phases.

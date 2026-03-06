@@ -2,7 +2,7 @@
 
 ## Purpose
 
-This `frontend/` directory contains the current frontend for the Project Management MVP. It is a statically exported Next.js application served by the FastAPI backend. It now includes the MVP login experience, but it still has no persistence and no AI features yet.
+This `frontend/` directory contains the current frontend for the Project Management MVP. It is a statically exported Next.js application served by the FastAPI backend. It now includes the MVP login experience and uses the backend board APIs for persistence, but it still has no AI features yet.
 
 ## Current stack
 
@@ -24,7 +24,7 @@ This `frontend/` directory contains the current frontend for the Project Managem
 ## Main application structure
 
 - `src/components/KanbanBoard.tsx`
-  - Owns the board state in React state.
+  - Loads the board from the backend and updates local UI state from API responses.
   - Handles drag and drop, renaming columns, adding cards, and deleting cards.
 - `src/components/KanbanColumn.tsx`
   - Renders a single column and its cards.
@@ -39,7 +39,9 @@ This `frontend/` directory contains the current frontend for the Project Managem
 - `src/components/LogoutButton.tsx`
   - Handles logging out through the backend logout endpoint.
 - `src/lib/kanban.ts`
-  - Defines the board types, seeded demo data, card movement helper, and ID creation helper.
+  - Defines the board types and drag-order helper logic shared by the frontend.
+- `src/lib/boardApi.ts`
+  - Wraps the backend board routes used by the frontend.
 
 ## Current behavior
 
@@ -50,14 +52,11 @@ This `frontend/` directory contains the current frontend for the Project Managem
 - Users can delete cards.
 - Users can drag cards within a column and across columns.
 - Users can log out from the board header.
-- Authentication is backend-enforced, but all board data is still local to the browser session.
+- Board changes are loaded from and saved through the backend API.
 
 ## Important limitations
 
-- The board state is initialized from in-memory demo data.
-- Refreshing the page resets the board to its seeded state.
-- The only backend integration so far is the login/logout/session gate.
-- There is no database persistence.
+- The board still uses a simple client-side fetch-and-refresh approach rather than advanced optimistic syncing.
 - There is no AI sidebar or AI-driven board update flow.
 
 ## Testing
@@ -65,7 +64,7 @@ This `frontend/` directory contains the current frontend for the Project Managem
 - `src/lib/kanban.test.ts` covers the card movement helper logic.
 - `src/components/KanbanBoard.test.tsx` covers key board interactions in component tests.
 - `src/components/LoginForm.test.tsx` and `src/components/LogoutButton.test.tsx` cover the auth UI actions.
-- `tests/kanban.spec.ts` covers auth gating, sign-in, logout, and a signed-in board interaction flow through the backend-served app.
+- `tests/kanban.spec.ts` covers auth gating, sign-in, logout, and a signed-in board interaction flow with persistence across refresh.
 
 ## Notes for future work
 
