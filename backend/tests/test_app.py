@@ -2,6 +2,8 @@ from fastapi.testclient import TestClient
 
 from app.main import create_app
 
+CSRF = {"X-Requested-With": "fetch"}
+
 
 def create_client(tmp_path, monkeypatch) -> TestClient:
     monkeypatch.setenv("DATABASE_PATH", str(tmp_path / "pm-test.sqlite3"))
@@ -40,6 +42,7 @@ def test_valid_login_sets_session_and_allows_root(tmp_path, monkeypatch) -> None
         login_response = client.post(
             "/api/login",
             json={"username": "user", "password": "password"},
+            headers=CSRF,
         )
 
         assert login_response.status_code == 200
@@ -59,6 +62,7 @@ def test_invalid_login_is_rejected(tmp_path, monkeypatch) -> None:
         response = client.post(
             "/api/login",
             json={"username": "user", "password": "wrong"},
+            headers=CSRF,
         )
 
         assert response.status_code == 401
@@ -67,9 +71,9 @@ def test_invalid_login_is_rejected(tmp_path, monkeypatch) -> None:
 
 def test_logout_clears_the_session(tmp_path, monkeypatch) -> None:
     with create_client(tmp_path, monkeypatch) as client:
-        client.post("/api/login", json={"username": "user", "password": "password"})
+        client.post("/api/login", json={"username": "user", "password": "password"}, headers=CSRF)
 
-        logout_response = client.post("/api/logout")
+        logout_response = client.post("/api/logout", headers=CSRF)
         assert logout_response.status_code == 200
         assert logout_response.json() == {"authenticated": False}
 
@@ -83,7 +87,7 @@ def test_database_is_created_and_seeded(tmp_path, monkeypatch) -> None:
     monkeypatch.setenv("DATABASE_PATH", str(database_path))
 
     with TestClient(create_app()) as client:
-        client.post("/api/login", json={"username": "user", "password": "password"})
+        client.post("/api/login", json={"username": "user", "password": "password"}, headers=CSRF)
         response = client.get("/api/board")
 
         assert database_path.exists()
@@ -104,11 +108,12 @@ def test_board_api_rejects_unauthenticated_requests(tmp_path, monkeypatch) -> No
 
 def test_board_mutation_endpoints_work_for_authenticated_user(tmp_path, monkeypatch) -> None:
     with create_client(tmp_path, monkeypatch) as client:
-        client.post("/api/login", json={"username": "user", "password": "password"})
+        client.post("/api/login", json={"username": "user", "password": "password"}, headers=CSRF)
 
         rename_response = client.patch(
             "/api/columns/col-backlog",
             json={"title": "Ideas"},
+            headers=CSRF,
         )
         assert rename_response.status_code == 200
         assert rename_response.json()["columns"][0]["title"] == "Ideas"
@@ -116,6 +121,7 @@ def test_board_mutation_endpoints_work_for_authenticated_user(tmp_path, monkeypa
         create_response = client.post(
             "/api/columns/col-backlog/cards",
             json={"title": "API card", "details": "Created from test."},
+            headers=CSRF,
         )
         assert create_response.status_code == 200
         board = create_response.json()
@@ -130,13 +136,14 @@ def test_board_mutation_endpoints_work_for_authenticated_user(tmp_path, monkeypa
                 "columnId": "col-review",
                 "position": 0,
             },
+            headers=CSRF,
         )
         assert update_response.status_code == 200
         updated_board = update_response.json()
         assert updated_board["columns"][3]["cardIds"][0] == created_card_id
         assert updated_board["cards"][created_card_id]["title"] == "Updated API card"
 
-        delete_response = client.delete(f"/api/cards/{created_card_id}")
+        delete_response = client.delete(f"/api/cards/{created_card_id}", headers=CSRF)
         assert delete_response.status_code == 200
         deleted_board = delete_response.json()
         assert created_card_id not in deleted_board["cards"]
@@ -148,12 +155,12 @@ def test_board_changes_persist_across_app_restarts(tmp_path, monkeypatch) -> Non
     monkeypatch.setenv("DATABASE_PATH", str(database_path))
 
     with TestClient(create_app()) as client:
-        client.post("/api/login", json={"username": "user", "password": "password"})
-        response = client.patch("/api/columns/col-review", json={"title": "Ready"})
+        client.post("/api/login", json={"username": "user", "password": "password"}, headers=CSRF)
+        response = client.patch("/api/columns/col-review", json={"title": "Ready"}, headers=CSRF)
         assert response.status_code == 200
 
     with TestClient(create_app()) as client:
-        client.post("/api/login", json={"username": "user", "password": "password"})
+        client.post("/api/login", json={"username": "user", "password": "password"}, headers=CSRF)
         board_response = client.get("/api/board")
 
         assert board_response.status_code == 200
@@ -164,11 +171,12 @@ def test_board_changes_persist_across_app_restarts(tmp_path, monkeypatch) -> Non
 
 def test_move_from_middle_of_column_succeeds(tmp_path, monkeypatch) -> None:
     with create_client(tmp_path, monkeypatch) as client:
-        client.post("/api/login", json={"username": "user", "password": "password"})
+        client.post("/api/login", json={"username": "user", "password": "password"}, headers=CSRF)
 
         response = client.patch(
             "/api/cards/card-1",
             json={"columnId": "col-progress", "position": 1},
+            headers=CSRF,
         )
 
         assert response.status_code == 200

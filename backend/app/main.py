@@ -1,5 +1,6 @@
 import logging
 import os
+import time
 from contextlib import asynccontextmanager
 from pathlib import Path
 
@@ -7,7 +8,9 @@ from fastapi import FastAPI, HTTPException, Request, status
 from fastapi.responses import FileResponse, RedirectResponse
 from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel, ConfigDict, Field
+from starlette.middleware.base import BaseHTTPMiddleware, RequestResponseEndpoint
 from starlette.middleware.sessions import SessionMiddleware
+from starlette.responses import Response
 
 from app.ai import (
     AIBoardOperationError,
@@ -37,6 +40,20 @@ PROJECT_ROOT = APP_DIR.parents[1]
 LOCAL_FRONTEND_OUT = PROJECT_ROOT / "frontend" / "out"
 FALLBACK_STATIC_DIR = APP_DIR / "static"
 DEMO_PASSWORD = "password"
+CSRF_HEADER = "X-Requested-With"
+CSRF_SAFE_METHODS = {"GET", "HEAD", "OPTIONS"}
+
+
+class CSRFMiddleware(BaseHTTPMiddleware):
+    async def dispatch(self, request: Request, call_next: RequestResponseEndpoint) -> Response:
+        if (
+            request.method not in CSRF_SAFE_METHODS
+            and request.url.path.startswith("/api/")
+            and request.url.path != "/api/health"
+            and CSRF_HEADER not in request.headers
+        ):
+            return Response("CSRF header missing", status_code=403)
+        return await call_next(request)
 
 
 class LoginRequest(BaseModel):
@@ -44,13 +61,17 @@ class LoginRequest(BaseModel):
     password: str
 
 
+MAX_TITLE_LENGTH = 500
+MAX_DETAILS_LENGTH = 5000
+
+
 class ColumnUpdateRequest(BaseModel):
-    title: str
+    title: str = Field(min_length=1, max_length=MAX_TITLE_LENGTH)
 
 
 class CardCreateRequest(BaseModel):
-    title: str
-    details: str = ""
+    title: str = Field(min_length=1, max_length=MAX_TITLE_LENGTH)
+    details: str = Field(default="", max_length=MAX_DETAILS_LENGTH)
 
 
 class CardUpdateRequest(BaseModel):
@@ -73,7 +94,13 @@ def get_current_username(request: Request) -> str:
             detail="Authentication required.",
         )
 
-    return request.session["username"]
+    username = request.session.get("username")
+    if not username:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Authentication required.",
+        )
+    return username
 
 
 def get_static_dir() -> Path:
@@ -101,14 +128,26 @@ async def lifespan(_: FastAPI):
 
 def create_app() -> FastAPI:
     app = FastAPI(title="Project Management MVP API", lifespan=lifespan)
+    session_secret = os.getenv("SESSION_SECRET")
+    if not session_secret:
+        logger.warning("SESSION_SECRET is not set -- using an insecure default. Set it for any non-local deployment.")
+        session_secret = "project-management-mvp-dev-secret"
+
+    https_only = os.getenv("HTTPS_ONLY", "").lower() in ("1", "true", "yes")
+
     app.add_middleware(
         SessionMiddleware,
-        secret_key=os.getenv("SESSION_SECRET", "project-management-mvp-dev-secret"),
+        secret_key=session_secret,
         session_cookie="pm_session",
         same_site="lax",
-        https_only=False,
+        https_only=https_only,
         max_age=60 * 60 * 12,
     )
+
+    app.add_middleware(CSRFMiddleware)
+
+    ai_rate_limit: dict[str, float] = {}
+    AI_RATE_LIMIT_SECONDS = 2.0
 
 
     @app.get("/", include_in_schema=False)
@@ -164,6 +203,15 @@ def create_app() -> FastAPI:
     @app.post("/api/ai/board")
     def create_ai_board_response(payload: AIBoardRequest, request: Request) -> dict:
         username = get_current_username(request)
+
+        now = time.monotonic()
+        last_request = ai_rate_limit.get(username, 0.0)
+        if now - last_request < AI_RATE_LIMIT_SECONDS:
+            raise HTTPException(
+                status_code=status.HTTP_429_TOO_MANY_REQUESTS,
+                detail="Please wait a moment before sending another AI request.",
+            )
+        ai_rate_limit[username] = now
 
         try:
             with connect() as connection:

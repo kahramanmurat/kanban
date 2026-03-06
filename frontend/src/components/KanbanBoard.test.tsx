@@ -43,7 +43,7 @@ describe("KanbanBoard", () => {
     render(<KanbanBoard />);
 
     const column = (await screen.findAllByTestId(/column-/i))[0];
-    const input = within(column).getByLabelText("Column title");
+    const input = within(column).getByLabelText(/Rename column:/i);
 
     await userEvent.clear(input);
     await userEvent.type(input, "New Name");

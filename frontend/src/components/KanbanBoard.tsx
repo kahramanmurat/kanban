@@ -33,6 +33,7 @@ export const KanbanBoard = () => {
   const [activeCardId, setActiveCardId] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
+  const [mutationInFlight, setMutationInFlight] = useState(false);
   const [error, setError] = useState("");
 
   const sensors = useSensors(
@@ -63,6 +64,8 @@ export const KanbanBoard = () => {
   }, [loadBoard]);
 
   const runMutation = async (mutate: () => Promise<BoardData>) => {
+    if (mutationInFlight) return;
+    setMutationInFlight(true);
     setIsSaving(true);
     setError("");
 
@@ -74,6 +77,7 @@ export const KanbanBoard = () => {
       );
     } finally {
       setIsSaving(false);
+      setMutationInFlight(false);
     }
   };
 
@@ -146,7 +150,13 @@ export const KanbanBoard = () => {
       throw new Error("The board is still loading.");
     }
 
+    if (mutationInFlight) {
+      throw new Error("A board update is already in progress.");
+    }
+
+    setMutationInFlight(true);
     setIsSaving(true);
+    setError("");
 
     try {
       const response = await sendAiBoardMessage(message, history);
@@ -154,6 +164,7 @@ export const KanbanBoard = () => {
       return response;
     } finally {
       setIsSaving(false);
+      setMutationInFlight(false);
     }
   };
 
@@ -163,7 +174,7 @@ export const KanbanBoard = () => {
     return (
       <div className="relative overflow-hidden">
         <main className="relative mx-auto flex min-h-screen max-w-[1680px] items-center justify-center px-6 py-16">
-          <div className="rounded-[32px] border border-[var(--stroke)] bg-white/90 px-8 py-6 shadow-[var(--shadow)]">
+          <div className="rounded-[32px] border border-[var(--stroke)] bg-white/90 px-8 py-6 shadow-[var(--shadow)]" role="status" aria-live="polite">
             <p className="text-sm font-semibold uppercase tracking-[0.25em] text-[var(--gray-text)]">
               Loading board
             </p>
@@ -232,12 +243,12 @@ export const KanbanBoard = () => {
           </div>
           <div className="flex flex-wrap items-center gap-4">
             {isSaving ? (
-              <p className="text-xs font-semibold uppercase tracking-[0.2em] text-[var(--secondary-purple)]">
+              <p className="text-xs font-semibold uppercase tracking-[0.2em] text-[var(--secondary-purple)]" role="status" aria-live="polite">
                 Saving...
               </p>
             ) : null}
             {error ? (
-              <p className="text-xs font-semibold text-[var(--secondary-purple)]">
+              <p className="text-xs font-semibold text-[var(--secondary-purple)]" role="alert">
                 {error}
               </p>
             ) : null}

@@ -6,6 +6,8 @@ from app.ai import AIConnectivityError, CONNECTIVITY_PROMPT, run_connectivity_ch
 from app.main import create_app
 from app.settings import DEFAULT_OPENAI_MODEL, get_settings
 
+CSRF = {"X-Requested-With": "fetch"}
+
 
 def create_client(tmp_path, monkeypatch) -> TestClient:
     monkeypatch.setenv("DATABASE_PATH", str(tmp_path / "pm-test.sqlite3"))
@@ -55,7 +57,7 @@ def test_run_connectivity_check_rejects_empty_output() -> None:
 
 def test_ai_connectivity_route_requires_authentication(tmp_path, monkeypatch) -> None:
     with create_client(tmp_path, monkeypatch) as client:
-        response = client.post("/api/ai/connectivity")
+        response = client.post("/api/ai/connectivity", headers=CSRF)
 
         assert response.status_code == 401
         assert response.json() == {"detail": "Authentication required."}
@@ -65,8 +67,8 @@ def test_ai_connectivity_route_reports_missing_api_key(tmp_path, monkeypatch) ->
     monkeypatch.setenv("OPENAI_API_KEY", "")
 
     with create_client(tmp_path, monkeypatch) as client:
-        client.post("/api/login", json={"username": "user", "password": "password"})
-        response = client.post("/api/ai/connectivity")
+        client.post("/api/login", json={"username": "user", "password": "password"}, headers=CSRF)
+        response = client.post("/api/ai/connectivity", headers=CSRF)
 
         assert response.status_code == 503
         assert response.json() == {
@@ -87,8 +89,8 @@ def test_ai_connectivity_route_returns_model_output(tmp_path, monkeypatch) -> No
     monkeypatch.setattr("app.ai.create_openai_client", lambda api_key: fake_client)
 
     with create_client(tmp_path, monkeypatch) as client:
-        client.post("/api/login", json={"username": "user", "password": "password"})
-        response = client.post("/api/ai/connectivity")
+        client.post("/api/login", json={"username": "user", "password": "password"}, headers=CSRF)
+        response = client.post("/api/ai/connectivity", headers=CSRF)
 
         assert response.status_code == 200
         assert response.json() == {

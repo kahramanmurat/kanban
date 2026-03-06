@@ -6,6 +6,8 @@ from fastapi.testclient import TestClient
 from app.ai import AIResponseFormatError, build_board_prompt, parse_board_response
 from app.main import create_app
 
+CSRF = {"X-Requested-With": "fetch"}
+
 
 def create_client(tmp_path, monkeypatch) -> TestClient:
     monkeypatch.setenv("DATABASE_PATH", str(tmp_path / "pm-test.sqlite3"))
@@ -50,7 +52,7 @@ def test_parse_board_response_rejects_invalid_payload() -> None:
 
 def test_ai_board_route_requires_authentication(tmp_path, monkeypatch) -> None:
     with create_client(tmp_path, monkeypatch) as client:
-        response = client.post("/api/ai/board", json={"message": "Summarize the board."})
+        response = client.post("/api/ai/board", json={"message": "Summarize the board."}, headers=CSRF)
 
         assert response.status_code == 401
         assert response.json() == {"detail": "Authentication required."}
@@ -69,10 +71,11 @@ def test_ai_board_route_returns_noop_response(tmp_path, monkeypatch) -> None:
     monkeypatch.setattr("app.ai.create_openai_client", lambda api_key: fake_client)
 
     with create_client(tmp_path, monkeypatch) as client:
-        client.post("/api/login", json={"username": "user", "password": "password"})
+        client.post("/api/login", json={"username": "user", "password": "password"}, headers=CSRF)
         before = client.get("/api/board").json()
         response = client.post(
             "/api/ai/board",
+            headers=CSRF,
             json={"message": "Summarize the board without changing it."},
         )
 
@@ -111,9 +114,10 @@ def test_ai_board_route_applies_operations_and_persists_changes(tmp_path, monkey
     monkeypatch.setattr("app.ai.create_openai_client", lambda api_key: fake_client)
 
     with create_client(tmp_path, monkeypatch) as client:
-        client.post("/api/login", json={"username": "user", "password": "password"})
+        client.post("/api/login", json={"username": "user", "password": "password"}, headers=CSRF)
         response = client.post(
             "/api/ai/board",
+            headers=CSRF,
             json={"message": "Rename In Progress to Building and add a launch FAQ card to Backlog."},
         )
 
@@ -163,9 +167,10 @@ def test_ai_board_route_moves_card_from_middle_of_source_column(tmp_path, monkey
     monkeypatch.setattr("app.ai.create_openai_client", lambda api_key: fake_client)
 
     with create_client(tmp_path, monkeypatch) as client:
-        client.post("/api/login", json={"username": "user", "password": "password"})
+        client.post("/api/login", json={"username": "user", "password": "password"}, headers=CSRF)
         response = client.post(
             "/api/ai/board",
+            headers=CSRF,
             json={"message": 'Move "Align roadmap themes" to In Progress.'},
         )
 
@@ -187,10 +192,11 @@ def test_ai_board_route_rejects_malformed_model_output(tmp_path, monkeypatch) ->
     monkeypatch.setattr("app.ai.create_openai_client", lambda api_key: fake_client)
 
     with create_client(tmp_path, monkeypatch) as client:
-        client.post("/api/login", json={"username": "user", "password": "password"})
+        client.post("/api/login", json={"username": "user", "password": "password"}, headers=CSRF)
         before = client.get("/api/board").json()
         response = client.post(
             "/api/ai/board",
+            headers=CSRF,
             json={"message": "Make up something invalid."},
         )
 
@@ -224,10 +230,11 @@ def test_ai_board_route_rolls_back_on_invalid_operation_sequence(tmp_path, monke
     monkeypatch.setattr("app.ai.create_openai_client", lambda api_key: fake_client)
 
     with create_client(tmp_path, monkeypatch) as client:
-        client.post("/api/login", json={"username": "user", "password": "password"})
+        client.post("/api/login", json={"username": "user", "password": "password"}, headers=CSRF)
         before = client.get("/api/board").json()
         response = client.post(
             "/api/ai/board",
+            headers=CSRF,
             json={"message": "Rename Review and then delete a missing card."},
         )
 

@@ -32,6 +32,7 @@ export const LoginForm = ({ onAuthenticated }: LoginFormProps) => {
         credentials: "same-origin",
         headers: {
           "Content-Type": "application/json",
+          "X-Requested-With": "fetch",
         },
         body: JSON.stringify({ username, password }),
       });

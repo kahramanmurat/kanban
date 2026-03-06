@@ -46,6 +46,10 @@ const requestJson = async <T>(
   const response = await fetch(input, {
     credentials: "same-origin",
     ...init,
+    headers: {
+      "X-Requested-With": "fetch",
+      ...init.headers,
+    },
   });
 
   if (response.status === 401) {

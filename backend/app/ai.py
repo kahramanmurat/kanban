@@ -142,7 +142,7 @@ class AIBoardModelResponse(BaseModel):
 
 
 def create_openai_client(api_key: str) -> OpenAI:
-    return OpenAI(api_key=api_key)
+    return OpenAI(api_key=api_key, timeout=30.0)
 
 
 def call_openai_text_response(client: OpenAI, model: str, prompt: str) -> str:

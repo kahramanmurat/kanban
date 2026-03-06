@@ -22,6 +22,7 @@ describe("LogoutButton", () => {
       expect(fetchMock).toHaveBeenCalledWith("/api/logout", {
         method: "POST",
         credentials: "same-origin",
+        headers: { "X-Requested-With": "fetch" },
       })
     );
     await waitFor(() => expect(onLoggedOut).toHaveBeenCalled());

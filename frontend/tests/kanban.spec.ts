@@ -5,6 +5,7 @@ const login = async (page: Page) => {
   await page.getByLabel("Username").fill("user");
   await page.getByLabel("Password").fill("password");
   await page.getByRole("button", { name: "Sign in" }).click();
+  await expect(page).toHaveURL(/\/$/);
 };
 
 const dragCardToColumn = async (
@@ -168,6 +169,10 @@ test("drops a card into an empty review column", async ({ page }) => {
   let patchBody: { columnId?: string; position?: number } | undefined;
 
   await page.route("**/api/board", async (route) => {
+    if (route.request().method() !== "GET") {
+      await route.fallback();
+      return;
+    }
     await route.fulfill({
       json: {
         columns: [
@@ -224,6 +229,10 @@ test("drops a card into an empty review column", async ({ page }) => {
   });
 
   await page.route("**/api/cards/card-1", async (route) => {
+    if (route.request().method() !== "PATCH") {
+      await route.fallback();
+      return;
+    }
     patchBody = route.request().postDataJSON() as { columnId?: string; position?: number };
     await route.fulfill({
       json: {

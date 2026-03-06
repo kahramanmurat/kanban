@@ -24,6 +24,12 @@ RUN uv sync --frozen --no-dev
 COPY backend /app/backend
 COPY --from=frontend-builder /app/frontend/out /app/backend/app/static
 
+RUN adduser --disabled-password --no-create-home appuser
+USER appuser
+
 EXPOSE 8000
+
+HEALTHCHECK --interval=30s --timeout=5s --retries=3 --start-period=10s \
+  CMD python -c "import urllib.request; urllib.request.urlopen('http://localhost:8000/api/health')"
 
 CMD ["uv", "run", "--frozen", "uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8000"]

@@ -27,6 +27,7 @@ export const LogoutButton = ({ onLoggedOut }: LogoutButtonProps) => {
       const response = await fetch("/api/logout", {
         method: "POST",
         credentials: "same-origin",
+        headers: { "X-Requested-With": "fetch" },
       });
 
       if (!response.ok) {

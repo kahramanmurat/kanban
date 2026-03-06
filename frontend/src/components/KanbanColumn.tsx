@@ -64,7 +64,7 @@ export const KanbanColumn = ({
               }
             }}
             className="mt-3 w-full bg-transparent font-display text-lg font-semibold text-[var(--navy-dark)] outline-none"
-            aria-label="Column title"
+            aria-label={`Rename column: ${column.title}`}
           />
         </div>
       </div>

@@ -1,6 +1,6 @@
 import os
 import sqlite3
-import time
+import uuid
 from datetime import datetime, timezone
 from pathlib import Path
 
@@ -137,7 +137,7 @@ def utc_now() -> str:
 
 
 def create_id(prefix: str) -> str:
-    return f"{prefix}-{time.time_ns():x}"
+    return f"{prefix}-{uuid.uuid4().hex[:12]}"
 
 
 def get_database_path() -> str:
