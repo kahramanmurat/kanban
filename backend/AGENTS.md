@@ -10,6 +10,7 @@ This directory contains the Python FastAPI backend for the Project Management MV
 - Exposes login and logout routes at `/api/login` and `/api/logout`.
 - Exposes persistent board routes at `/api/board`, `/api/columns/...`, and `/api/cards/...`.
 - Exposes a narrow AI connectivity route at `/api/ai/connectivity` for authenticated verification of the OpenAI setup.
+- Exposes an authenticated AI board route at `/api/ai/board` that returns an assistant message plus an updated board snapshot.
 - Creates and seeds a SQLite database automatically at `backend/data/pm.sqlite3`.
 - Uses `uv` for dependency management and locking.
 - Includes a focused pytest suite for auth and scaffolded routes.
@@ -25,4 +26,4 @@ This directory contains the Python FastAPI backend for the Project Management MV
 
 ## Future direction
 
-- Later phases will build on the connectivity check to add AI-backed board mutation routes and the chat sidebar.
+- Later phases will build on the AI board route to add the frontend chat sidebar and a richer in-app conversation experience.

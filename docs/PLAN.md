@@ -241,13 +241,13 @@ Have the backend send the current board state, user request, and conversation hi
 
 ### Checklist
 
-- [ ] Design a structured output schema with two top-level concerns: assistant response text and optional board update instructions.
-- [ ] Present that schema for user review before relying on it broadly.
-- [ ] Build the backend prompt and payload assembly using board JSON plus conversation history.
-- [ ] Validate model responses against the structured schema.
-- [ ] Translate valid update instructions into backend board mutations.
-- [ ] Persist AI-driven board changes safely and return both the assistant message and the updated board state.
-- [ ] Define simple failure behavior when the model response is invalid or incomplete.
+- [x] Design a structured output schema with two top-level concerns: assistant response text and optional board update instructions.
+- [x] Present that schema for user review before relying on it broadly.
+- [x] Build the backend prompt and payload assembly using board JSON plus conversation history.
+- [x] Validate model responses against the structured schema.
+- [x] Translate valid update instructions into backend board mutations.
+- [x] Persist AI-driven board changes safely and return both the assistant message and the updated board state.
+- [x] Define simple failure behavior when the model response is invalid or incomplete.
 
 ### Tests
 

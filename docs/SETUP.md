@@ -51,3 +51,4 @@ Or use the matching helper script for your platform.
 - The backend reads the key from the root `.env` during local `uv run` development, and `docker compose` passes it into the app container.
 - `OPENAI_MODEL` is optional and overrides the backend default model, which is currently `gpt-5-mini`.
 - After signing in, `POST /api/ai/connectivity` runs a narrow `2+2` check against the configured model.
+- After signing in, `POST /api/ai/board` accepts a user `message` plus optional `history` and returns an `assistantMessage`, `appliedOperations`, and the latest `board`.

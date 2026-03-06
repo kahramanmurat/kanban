@@ -9,7 +9,15 @@ from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel, ConfigDict, Field
 from starlette.middleware.sessions import SessionMiddleware
 
-from app.ai import AIConfigurationError, AIConnectivityError, check_openai_connectivity
+from app.ai import (
+    AIBoardOperationError,
+    AIBoardRequest,
+    AIConfigurationError,
+    AIConnectivityError,
+    AIResponseFormatError,
+    check_openai_connectivity,
+    run_board_assistant_turn,
+)
 from app.db import (
     DEMO_USERNAME,
     add_card,
@@ -150,6 +158,21 @@ def create_app() -> FastAPI:
             raise HTTPException(status_code=status.HTTP_503_SERVICE_UNAVAILABLE, detail=str(error)) from error
         except AIConnectivityError as error:
             logger.exception("AI connectivity check failed.")
+            raise HTTPException(status_code=status.HTTP_502_BAD_GATEWAY, detail=str(error)) from error
+
+
+    @app.post("/api/ai/board")
+    def create_ai_board_response(payload: AIBoardRequest, request: Request) -> dict:
+        username = get_current_username(request)
+
+        try:
+            with connect() as connection:
+                return run_board_assistant_turn(connection, username, payload)
+        except AIConfigurationError as error:
+            logger.warning("AI board request unavailable: %s", error)
+            raise HTTPException(status_code=status.HTTP_503_SERVICE_UNAVAILABLE, detail=str(error)) from error
+        except (AIConnectivityError, AIResponseFormatError, AIBoardOperationError) as error:
+            logger.exception("AI board request failed.")
             raise HTTPException(status_code=status.HTTP_502_BAD_GATEWAY, detail=str(error)) from error
 
 
