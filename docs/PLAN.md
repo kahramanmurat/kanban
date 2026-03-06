@@ -214,12 +214,12 @@ Prove that the backend can reach OpenAI successfully using the configured key an
 
 ### Checklist
 
-- [ ] Add backend configuration loading for `OPENAI_API_KEY`.
-- [ ] Add a minimal backend service wrapper for OpenAI requests.
-- [ ] Implement a narrow test route or internal command path for connectivity checks.
-- [ ] Execute a simple prompt such as `2+2` against the configured model.
-- [ ] Capture and log failures clearly enough to debug configuration issues.
-- [ ] Keep this phase scoped to connectivity only, not board updates.
+- [x] Add backend configuration loading for `OPENAI_API_KEY`.
+- [x] Add a minimal backend service wrapper for OpenAI requests.
+- [x] Implement a narrow test route or internal command path for connectivity checks.
+- [x] Execute a simple prompt such as `2+2` against the configured model.
+- [x] Capture and log failures clearly enough to debug configuration issues.
+- [x] Keep this phase scoped to connectivity only, not board updates.
 
 ### Tests
 

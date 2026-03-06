@@ -1,3 +1,4 @@
+import logging
 import os
 from contextlib import asynccontextmanager
 from pathlib import Path
@@ -8,6 +9,7 @@ from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel, ConfigDict, Field
 from starlette.middleware.sessions import SessionMiddleware
 
+from app.ai import AIConfigurationError, AIConnectivityError, check_openai_connectivity
 from app.db import (
     DEMO_USERNAME,
     add_card,
@@ -21,6 +23,7 @@ from app.db import (
 )
 
 
+logger = logging.getLogger(__name__)
 APP_DIR = Path(__file__).resolve().parent
 PROJECT_ROOT = APP_DIR.parents[1]
 LOCAL_FRONTEND_OUT = PROJECT_ROOT / "frontend" / "out"
@@ -134,6 +137,20 @@ def create_app() -> FastAPI:
             "status": "ok",
             "message": "Hello from FastAPI",
         }
+
+
+    @app.post("/api/ai/connectivity")
+    def read_ai_connectivity(request: Request) -> dict[str, str]:
+        get_current_username(request)
+
+        try:
+            return check_openai_connectivity()
+        except AIConfigurationError as error:
+            logger.warning("AI connectivity check unavailable: %s", error)
+            raise HTTPException(status_code=status.HTTP_503_SERVICE_UNAVAILABLE, detail=str(error)) from error
+        except AIConnectivityError as error:
+            logger.exception("AI connectivity check failed.")
+            raise HTTPException(status_code=status.HTTP_502_BAD_GATEWAY, detail=str(error)) from error
 
 
     @app.post("/api/login")

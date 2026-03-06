@@ -47,4 +47,7 @@ Or use the matching helper script for your platform.
 - Demo credentials: `user` / `password`
 - The SQLite database is created automatically at `backend/data/pm.sqlite3`.
 - Board changes now persist through the backend API, so refresh and re-login should keep your updates.
-- Authentication, database persistence, and AI connectivity will be added in later phases.
+- Set `OPENAI_API_KEY` in the project root `.env` before using the AI connectivity check.
+- The backend reads the key from the root `.env` during local `uv run` development, and `docker compose` passes it into the app container.
+- `OPENAI_MODEL` is optional and overrides the backend default model, which is currently `gpt-5-mini`.
+- After signing in, `POST /api/ai/connectivity` runs a narrow `2+2` check against the configured model.
