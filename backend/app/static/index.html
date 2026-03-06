@@ -1,0 +1,120 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Project Management MVP</title>
+    <style>
+      :root {
+        color-scheme: light;
+        --accent-yellow: #ecad0a;
+        --primary-blue: #209dd7;
+        --secondary-purple: #753991;
+        --dark-navy: #032147;
+        --gray-text: #888888;
+        --surface: #f7fafc;
+      }
+
+      * {
+        box-sizing: border-box;
+      }
+
+      body {
+        margin: 0;
+        min-height: 100vh;
+        font-family: Arial, Helvetica, sans-serif;
+        background: linear-gradient(135deg, #f8fbff 0%, #eef3fb 100%);
+        color: var(--dark-navy);
+      }
+
+      main {
+        max-width: 760px;
+        margin: 0 auto;
+        padding: 64px 24px;
+      }
+
+      .panel {
+        background: rgba(255, 255, 255, 0.92);
+        border: 1px solid rgba(3, 33, 71, 0.1);
+        border-radius: 24px;
+        padding: 32px;
+        box-shadow: 0 18px 50px rgba(3, 33, 71, 0.08);
+      }
+
+      .eyebrow {
+        margin: 0;
+        font-size: 0.8rem;
+        font-weight: 700;
+        letter-spacing: 0.22em;
+        text-transform: uppercase;
+        color: var(--gray-text);
+      }
+
+      h1 {
+        margin: 16px 0 12px;
+        font-size: clamp(2rem, 4vw, 3rem);
+      }
+
+      p {
+        margin: 0;
+        line-height: 1.6;
+      }
+
+      .status-card {
+        margin-top: 28px;
+        padding: 20px;
+        border-radius: 18px;
+        background: var(--surface);
+        border-left: 6px solid var(--accent-yellow);
+      }
+
+      .status-label {
+        display: inline-block;
+        margin-bottom: 10px;
+        font-size: 0.8rem;
+        font-weight: 700;
+        letter-spacing: 0.16em;
+        text-transform: uppercase;
+        color: var(--secondary-purple);
+      }
+
+      pre {
+        margin: 0;
+        white-space: pre-wrap;
+        word-break: break-word;
+        font-size: 0.95rem;
+      }
+    </style>
+  </head>
+  <body>
+    <main>
+      <section class="panel">
+        <p class="eyebrow">Project Management MVP</p>
+        <h1>Hello world from FastAPI</h1>
+        <p>
+          Part 2 scaffolding is active. This placeholder page is served by the
+          backend and makes a real API request to verify the containerized stack
+          is wired correctly.
+        </p>
+
+        <div class="status-card">
+          <span class="status-label">API response</span>
+          <pre id="api-response">Loading...</pre>
+        </div>
+      </section>
+    </main>
+
+    <script>
+      const responseNode = document.getElementById("api-response");
+
+      fetch("/api/health")
+        .then(async (response) => {
+          const data = await response.json();
+          responseNode.textContent = JSON.stringify(data, null, 2);
+        })
+        .catch((error) => {
+          responseNode.textContent = `Request failed: ${error.message}`;
+        });
+    </script>
+  </body>
+</html>
