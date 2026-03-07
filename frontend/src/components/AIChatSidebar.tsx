@@ -12,8 +12,13 @@ type AIChatSidebarProps = {
   onSend: (message: string, history: AIChatMessage[]) => Promise<AIChatResponse>;
 };
 
+const MAX_CHAT_HISTORY_MESSAGES = 12;
+
 const createMessageId = () =>
   `msg-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 8)}`;
+
+const trimMessages = (messages: ChatEntry[]) =>
+  messages.slice(-MAX_CHAT_HISTORY_MESSAGES);
 
 const formatOperationSummary = (count: number) => {
   if (count === 0) {
@@ -30,7 +35,8 @@ export const AIChatSidebar = ({ onSend }: AIChatSidebarProps) => {
   const [error, setError] = useState("");
 
   const messageHistory = useMemo<AIChatMessage[]>(
-    () => messages.map(({ role, content }) => ({ role, content })),
+    () =>
+      trimMessages(messages).map(({ role, content }) => ({ role, content })),
     [messages]
   );
 
@@ -48,23 +54,23 @@ export const AIChatSidebar = ({ onSend }: AIChatSidebarProps) => {
       content: trimmedMessage,
     };
 
-    setMessages((prev) => [...prev, userMessage]);
+    setMessages((prev) => trimMessages([...prev, userMessage]));
     setDraft("");
     setError("");
     setIsSubmitting(true);
 
     try {
       const response = await onSend(trimmedMessage, messageHistory);
-      setMessages((prev) => [
-        ...prev,
-        {
-          id: createMessageId(),
-          role: "assistant",
-          content: response.assistantMessage,
-          appliedOperationCount: response.appliedOperations.length,
-        },
-      ]);
+      const assistantMessage: ChatEntry = {
+        id: createMessageId(),
+        role: "assistant",
+        content: response.assistantMessage,
+        appliedOperationCount: response.appliedOperations.length,
+      };
+      setMessages((prev) => trimMessages([...trimMessages(prev), assistantMessage]));
     } catch (nextError) {
+      setMessages((prev) => prev.filter((message) => message.id != userMessage.id));
+      setDraft(trimmedMessage);
       setError(
         nextError instanceof Error
           ? nextError.message

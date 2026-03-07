@@ -8,7 +8,7 @@ from dotenv import load_dotenv
 
 APP_DIR = Path(__file__).resolve().parent
 PROJECT_ROOT = APP_DIR.parents[1]
-DEFAULT_OPENAI_MODEL = "gpt-4o-mini"
+DEFAULT_OPENAI_MODEL = "gpt-5-mini"
 
 
 @dataclass(frozen=True)

@@ -1,4 +1,5 @@
 from fastapi.testclient import TestClient
+import pytest
 
 from app.main import create_app
 
@@ -19,6 +20,17 @@ def test_health_returns_expected_payload() -> None:
             "status": "ok",
             "message": "Hello from FastAPI",
         }
+
+
+def test_missing_session_secret_is_rejected(monkeypatch) -> None:
+    monkeypatch.delenv("SESSION_SECRET", raising=False)
+
+    with pytest.raises(RuntimeError) as error:
+        create_app()
+
+    assert str(error.value) == (
+        "SESSION_SECRET is required. Set it in the environment or project root .env file."
+    )
 
 
 def test_unauthenticated_root_redirects_to_login(tmp_path, monkeypatch) -> None:
@@ -71,7 +83,11 @@ def test_invalid_login_is_rejected(tmp_path, monkeypatch) -> None:
 
 def test_logout_clears_the_session(tmp_path, monkeypatch) -> None:
     with create_client(tmp_path, monkeypatch) as client:
-        client.post("/api/login", json={"username": "user", "password": "password"}, headers=CSRF)
+        client.post(
+            "/api/login",
+            json={"username": "user", "password": "password"},
+            headers=CSRF,
+        )
 
         logout_response = client.post("/api/logout", headers=CSRF)
         assert logout_response.status_code == 200
@@ -87,7 +103,11 @@ def test_database_is_created_and_seeded(tmp_path, monkeypatch) -> None:
     monkeypatch.setenv("DATABASE_PATH", str(database_path))
 
     with TestClient(create_app()) as client:
-        client.post("/api/login", json={"username": "user", "password": "password"}, headers=CSRF)
+        client.post(
+            "/api/login",
+            json={"username": "user", "password": "password"},
+            headers=CSRF,
+        )
         response = client.get("/api/board")
 
         assert database_path.exists()
@@ -106,9 +126,15 @@ def test_board_api_rejects_unauthenticated_requests(tmp_path, monkeypatch) -> No
         assert response.json() == {"detail": "Authentication required."}
 
 
-def test_board_mutation_endpoints_work_for_authenticated_user(tmp_path, monkeypatch) -> None:
+def test_board_mutation_endpoints_work_for_authenticated_user(
+    tmp_path, monkeypatch
+) -> None:
     with create_client(tmp_path, monkeypatch) as client:
-        client.post("/api/login", json={"username": "user", "password": "password"}, headers=CSRF)
+        client.post(
+            "/api/login",
+            json={"username": "user", "password": "password"},
+            headers=CSRF,
+        )
 
         rename_response = client.patch(
             "/api/columns/col-backlog",
@@ -155,23 +181,39 @@ def test_board_changes_persist_across_app_restarts(tmp_path, monkeypatch) -> Non
     monkeypatch.setenv("DATABASE_PATH", str(database_path))
 
     with TestClient(create_app()) as client:
-        client.post("/api/login", json={"username": "user", "password": "password"}, headers=CSRF)
-        response = client.patch("/api/columns/col-review", json={"title": "Ready"}, headers=CSRF)
+        client.post(
+            "/api/login",
+            json={"username": "user", "password": "password"},
+            headers=CSRF,
+        )
+        response = client.patch(
+            "/api/columns/col-review", json={"title": "Ready"}, headers=CSRF
+        )
         assert response.status_code == 200
 
     with TestClient(create_app()) as client:
-        client.post("/api/login", json={"username": "user", "password": "password"}, headers=CSRF)
+        client.post(
+            "/api/login",
+            json={"username": "user", "password": "password"},
+            headers=CSRF,
+        )
         board_response = client.get("/api/board")
 
         assert board_response.status_code == 200
         board = board_response.json()
-        review_column = next(column for column in board["columns"] if column["id"] == "col-review")
+        review_column = next(
+            column for column in board["columns"] if column["id"] == "col-review"
+        )
         assert review_column["title"] == "Ready"
 
 
 def test_move_from_middle_of_column_succeeds(tmp_path, monkeypatch) -> None:
     with create_client(tmp_path, monkeypatch) as client:
-        client.post("/api/login", json={"username": "user", "password": "password"}, headers=CSRF)
+        client.post(
+            "/api/login",
+            json={"username": "user", "password": "password"},
+            headers=CSRF,
+        )
 
         response = client.patch(
             "/api/cards/card-1",
@@ -181,8 +223,46 @@ def test_move_from_middle_of_column_succeeds(tmp_path, monkeypatch) -> None:
 
         assert response.status_code == 200
         board = response.json()
-        backlog_column = next(column for column in board["columns"] if column["id"] == "col-backlog")
-        progress_column = next(column for column in board["columns"] if column["id"] == "col-progress")
+        backlog_column = next(
+            column for column in board["columns"] if column["id"] == "col-backlog"
+        )
+        progress_column = next(
+            column for column in board["columns"] if column["id"] == "col-progress"
+        )
 
         assert backlog_column["cardIds"] == ["card-2"]
         assert progress_column["cardIds"] == ["card-4", "card-1", "card-5"]
+
+
+def test_card_updates_reject_blank_titles(tmp_path, monkeypatch) -> None:
+    with create_client(tmp_path, monkeypatch) as client:
+        client.post(
+            "/api/login",
+            json={"username": "user", "password": "password"},
+            headers=CSRF,
+        )
+
+        response = client.patch(
+            "/api/cards/card-1",
+            json={"title": ""},
+            headers=CSRF,
+        )
+
+        assert response.status_code == 422
+
+
+def test_card_updates_reject_missing_fields(tmp_path, monkeypatch) -> None:
+    with create_client(tmp_path, monkeypatch) as client:
+        client.post(
+            "/api/login",
+            json={"username": "user", "password": "password"},
+            headers=CSRF,
+        )
+
+        response = client.patch(
+            "/api/cards/card-1",
+            json={},
+            headers=CSRF,
+        )
+
+        assert response.status_code == 422

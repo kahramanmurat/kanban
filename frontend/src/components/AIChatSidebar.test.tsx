@@ -83,5 +83,39 @@ describe("AIChatSidebar", () => {
     await waitFor(() =>
       expect(screen.getByText("AI is temporarily unavailable.")).toBeInTheDocument()
     );
+    expect(screen.getByRole("log", { name: "AI conversation" })).not.toHaveTextContent(
+      "Try again later"
+    );
+    expect(screen.getByLabelText("Ask AI to update the board")).toHaveValue("Try again later");
+  });
+
+  it("sends only the latest bounded chat history", async () => {
+    const onSend = vi
+      .fn()
+      .mockResolvedValue(createResponse({ assistantMessage: "Done." }));
+
+    render(<AIChatSidebar onSend={onSend} />);
+
+    for (let index = 0; index < 13; index += 1) {
+      await userEvent.clear(screen.getByLabelText("Ask AI to update the board"));
+      await userEvent.type(screen.getByLabelText("Ask AI to update the board"), `Message ${index}`);
+      await userEvent.click(screen.getByRole("button", { name: "Send" }));
+      await waitFor(() => expect(onSend).toHaveBeenCalledTimes(index + 1));
+    }
+
+    await userEvent.clear(screen.getByLabelText("Ask AI to update the board"));
+    await userEvent.type(screen.getByLabelText("Ask AI to update the board"), "Final message");
+    await userEvent.click(screen.getByRole("button", { name: "Send" }));
+
+    await waitFor(() => expect(onSend).toHaveBeenCalledTimes(14));
+
+    const latestHistory = onSend.mock.calls.at(-1)?.[1];
+    expect(latestHistory).toHaveLength(12);
+    expect(latestHistory.some((message: { content: string }) => message.content === "Message 0")).toBe(
+      false
+    );
+    expect(latestHistory.some((message: { content: string }) => message.content === "Message 12")).toBe(
+      true
+    );
   });
 });

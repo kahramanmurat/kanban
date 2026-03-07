@@ -2,14 +2,28 @@ import json
 from dataclasses import asdict, dataclass
 from typing import Annotated, Any, Literal
 
-from openai import APIConnectionError, APIError, APITimeoutError, AuthenticationError, OpenAI
+from openai import (
+    APIConnectionError,
+    APIError,
+    APITimeoutError,
+    AuthenticationError,
+    OpenAI,
+)
 from pydantic import BaseModel, ConfigDict, Field, ValidationError, model_validator
 
-from app.db import add_card, delete_card, get_board_for_username, rename_column, update_card
+from app.db import (
+    add_card,
+    delete_card,
+    get_board_for_username,
+    rename_column,
+    update_card,
+)
 from app.settings import Settings, get_settings
 
 
 CONNECTIVITY_PROMPT = "What is 2 + 2? Reply with digits only."
+MAX_CONVERSATION_MESSAGES = 12
+MAX_CHAT_MESSAGE_LENGTH = 2000
 BOARD_SYSTEM_PROMPT = """You are an assistant that helps update a Kanban board.
 
 Return valid JSON only. Do not include markdown fences.
@@ -31,6 +45,8 @@ Rules:
 - Use move_card only for moving a card.
 - If no board change is needed, set boardChange to null.
 """
+MAX_TITLE_LENGTH = 500
+MAX_DETAILS_LENGTH = 5000
 
 
 class AIConfigurationError(RuntimeError):
@@ -60,14 +76,16 @@ class ConversationMessage(BaseModel):
     model_config = ConfigDict(extra="forbid")
 
     role: Literal["user", "assistant"]
-    content: str = Field(min_length=1)
+    content: str = Field(min_length=1, max_length=MAX_CHAT_MESSAGE_LENGTH)
 
 
 class AIBoardRequest(BaseModel):
     model_config = ConfigDict(extra="forbid")
 
-    message: str = Field(min_length=1)
-    history: list[ConversationMessage] = Field(default_factory=list)
+    message: str = Field(min_length=1, max_length=MAX_CHAT_MESSAGE_LENGTH)
+    history: list[ConversationMessage] = Field(
+        default_factory=list, max_length=MAX_CONVERSATION_MESSAGES
+    )
 
 
 class RenameColumnOperation(BaseModel):
@@ -75,7 +93,7 @@ class RenameColumnOperation(BaseModel):
 
     type: Literal["rename_column"]
     column_id: str = Field(alias="columnId", min_length=1)
-    title: str = Field(min_length=1)
+    title: str = Field(min_length=1, max_length=MAX_TITLE_LENGTH)
 
 
 class AddCardOperation(BaseModel):
@@ -83,8 +101,8 @@ class AddCardOperation(BaseModel):
 
     type: Literal["add_card"]
     column_id: str = Field(alias="columnId", min_length=1)
-    title: str = Field(min_length=1)
-    details: str = ""
+    title: str = Field(min_length=1, max_length=MAX_TITLE_LENGTH)
+    details: str = Field(default="", max_length=MAX_DETAILS_LENGTH)
 
 
 class UpdateCardOperation(BaseModel):
@@ -92,8 +110,8 @@ class UpdateCardOperation(BaseModel):
 
     type: Literal["update_card"]
     card_id: str = Field(alias="cardId", min_length=1)
-    title: str | None = None
-    details: str | None = None
+    title: str | None = Field(default=None, min_length=1, max_length=MAX_TITLE_LENGTH)
+    details: str | None = Field(default=None, max_length=MAX_DETAILS_LENGTH)
 
     @model_validator(mode="after")
     def validate_fields(self) -> "UpdateCardOperation":
@@ -148,7 +166,12 @@ def create_openai_client(api_key: str) -> OpenAI:
 def call_openai_text_response(client: OpenAI, model: str, prompt: str) -> str:
     try:
         result = client.responses.create(model=model, input=prompt)
-    except (APIConnectionError, APIError, APITimeoutError, AuthenticationError) as error:
+    except (
+        APIConnectionError,
+        APIError,
+        APITimeoutError,
+        AuthenticationError,
+    ) as error:
         message = getattr(error, "message", str(error))
         raise AIConnectivityError(f"OpenAI request failed: {message}") from error
 
@@ -180,13 +203,17 @@ def check_openai_connectivity(settings: Settings | None = None) -> dict[str, str
     return asdict(run_connectivity_check(client, current_settings.openai_model))
 
 
-def build_board_prompt(board: dict[str, Any], message: str, history: list[ConversationMessage]) -> str:
-    history_payload = [entry.model_dump() for entry in history]
+def build_board_prompt(
+    board: dict[str, Any], message: str, history: list[ConversationMessage]
+) -> str:
+    history_payload = [
+        entry.model_dump() for entry in history[-MAX_CONVERSATION_MESSAGES:]
+    ]
     return (
         f"{BOARD_SYSTEM_PROMPT}\n"
         f"Current board JSON:\n{json.dumps(board, indent=2, sort_keys=True)}\n\n"
         f"Conversation history JSON:\n{json.dumps(history_payload, indent=2)}\n\n"
-        f'Latest user message:\n{json.dumps(message)}\n'
+        f"Latest user message:\n{json.dumps(message)}\n"
     )
 
 
@@ -199,7 +226,9 @@ def parse_board_response(response_text: str) -> AIBoardModelResponse:
     try:
         return AIBoardModelResponse.model_validate(payload)
     except ValidationError as error:
-        raise AIResponseFormatError("AI returned an invalid board operation payload.") from error
+        raise AIResponseFormatError(
+            "AI returned an invalid board operation payload."
+        ) from error
 
 
 def request_board_response(
@@ -214,7 +243,9 @@ def request_board_response(
     return parse_board_response(response_text)
 
 
-def apply_board_operations(connection, username: str, board_change: BoardChange | None) -> tuple[dict, list[dict]]:
+def apply_board_operations(
+    connection, username: str, board_change: BoardChange | None
+) -> tuple[dict, list[dict]]:
     if board_change is None:
         return get_board_for_username(connection, username), []
 
@@ -224,7 +255,9 @@ def apply_board_operations(connection, username: str, board_change: BoardChange 
     try:
         for operation in board_change.operations:
             if isinstance(operation, RenameColumnOperation):
-                board = rename_column(connection, username, operation.column_id, operation.title)
+                board = rename_column(
+                    connection, username, operation.column_id, operation.title
+                )
             elif isinstance(operation, AddCardOperation):
                 board = add_card(
                     connection,
@@ -256,14 +289,18 @@ def apply_board_operations(connection, username: str, board_change: BoardChange 
             elif isinstance(operation, DeleteCardOperation):
                 board = delete_card(connection, username, operation.card_id)
 
-            applied_operations.append(operation.model_dump(by_alias=True, exclude_none=True))
+            applied_operations.append(
+                operation.model_dump(by_alias=True, exclude_none=True)
+            )
     except ValueError as error:
         raise AIBoardOperationError(str(error)) from error
 
     return board, applied_operations
 
 
-def run_board_assistant_turn(connection, username: str, payload: AIBoardRequest) -> dict[str, Any]:
+def run_board_assistant_turn(
+    connection, username: str, payload: AIBoardRequest
+) -> dict[str, Any]:
     settings = get_settings()
     if not settings.openai_api_key:
         raise AIConfigurationError(

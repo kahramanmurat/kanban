@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
   DndContext,
   DragOverlay,
@@ -26,6 +26,7 @@ import {
   moveCard,
   renameColumn,
   sendAiBoardMessage,
+  updateCard,
 } from "@/lib/boardApi";
 
 export const KanbanBoard = () => {
@@ -33,8 +34,9 @@ export const KanbanBoard = () => {
   const [activeCardId, setActiveCardId] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
-  const [mutationInFlight, setMutationInFlight] = useState(false);
   const [error, setError] = useState("");
+  const pendingMutationCount = useRef(0);
+  const mutationQueue = useRef<Promise<void>>(Promise.resolve());
 
   const sensors = useSensors(
     useSensor(PointerSensor, {
@@ -63,23 +65,45 @@ export const KanbanBoard = () => {
     void loadBoard();
   }, [loadBoard]);
 
-  const runMutation = async (mutate: () => Promise<BoardData>) => {
-    if (mutationInFlight) return;
-    setMutationInFlight(true);
+  const queueMutation = useCallback(<T,>(mutate: () => Promise<T>) => {
+    pendingMutationCount.current += 1;
     setIsSaving(true);
-    setError("");
+    const task = mutationQueue.current
+      .catch(() => undefined)
+      .then(async () => {
+        setError("");
+        return mutate();
+      });
 
-    try {
-      setBoard(await mutate());
-    } catch (nextError) {
-      setError(
-        nextError instanceof Error ? nextError.message : "Unable to save your changes."
-      );
-    } finally {
-      setIsSaving(false);
-      setMutationInFlight(false);
-    }
-  };
+    mutationQueue.current = task.then(
+      () => undefined,
+      () => undefined
+    );
+
+    return task.finally(() => {
+      pendingMutationCount.current = Math.max(0, pendingMutationCount.current - 1);
+      if (pendingMutationCount.current === 0) {
+        setIsSaving(false);
+      }
+    });
+  }, []);
+
+  const runMutation = useCallback(
+    (mutate: () => Promise<BoardData>) => {
+      void queueMutation(mutate)
+        .then((nextBoard) => {
+          setBoard(nextBoard);
+        })
+        .catch((nextError) => {
+          setError(
+            nextError instanceof Error
+              ? nextError.message
+              : "Unable to save your changes."
+          );
+        });
+    },
+    [queueMutation]
+  );
 
   const handleDragStart = (event: DragStartEvent) => {
     setActiveCardId(event.active.id as string);
@@ -113,9 +137,7 @@ export const KanbanBoard = () => {
 
     const nextPosition = destinationColumn.cardIds.indexOf(active.id as string);
 
-    void runMutation(() =>
-      moveCard(active.id as string, destinationColumn.id, nextPosition)
-    );
+    runMutation(() => moveCard(active.id as string, destinationColumn.id, nextPosition));
   };
 
   const handleRenameColumn = (columnId: string, title: string) => {
@@ -123,7 +145,7 @@ export const KanbanBoard = () => {
       return;
     }
 
-    void runMutation(() => renameColumn(columnId, title));
+    runMutation(() => renameColumn(columnId, title));
   };
 
   const handleAddCard = (columnId: string, title: string, details: string) => {
@@ -131,7 +153,15 @@ export const KanbanBoard = () => {
       return;
     }
 
-    void runMutation(() => addCard(columnId, title, details));
+    runMutation(() => addCard(columnId, title, details));
+  };
+
+  const handleUpdateCard = (cardId: string, title: string, details: string) => {
+    if (!board) {
+      return;
+    }
+
+    runMutation(() => updateCard(cardId, title, details));
   };
 
   const handleDeleteCard = (_columnId: string, cardId: string) => {
@@ -139,7 +169,7 @@ export const KanbanBoard = () => {
       return;
     }
 
-    void runMutation(() => deleteCard(cardId));
+    runMutation(() => deleteCard(cardId));
   };
 
   const handleSendAiMessage = async (
@@ -150,21 +180,17 @@ export const KanbanBoard = () => {
       throw new Error("The board is still loading.");
     }
 
-    if (mutationInFlight) {
-      throw new Error("A board update is already in progress.");
-    }
-
-    setMutationInFlight(true);
-    setIsSaving(true);
-    setError("");
-
     try {
-      const response = await sendAiBoardMessage(message, history);
+      const response = await queueMutation(() => sendAiBoardMessage(message, history));
       setBoard(response.board);
       return response;
-    } finally {
-      setIsSaving(false);
-      setMutationInFlight(false);
+    } catch (nextError) {
+      setError(
+        nextError instanceof Error
+          ? nextError.message
+          : "Unable to contact the AI assistant."
+      );
+      throw nextError;
     }
   };
 
@@ -283,6 +309,7 @@ export const KanbanBoard = () => {
                     cards={column.cardIds.map((cardId) => board.cards[cardId])}
                     onRename={handleRenameColumn}
                     onAddCard={handleAddCard}
+                    onUpdateCard={handleUpdateCard}
                     onDeleteCard={handleDeleteCard}
                   />
                 ))}

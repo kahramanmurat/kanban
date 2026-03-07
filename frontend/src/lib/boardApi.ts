@@ -106,6 +106,19 @@ export const moveCard = (cardId: string, columnId: string, position: number) =>
     "Unable to move the card."
   );
 
+export const updateCard = (cardId: string, title: string, details: string) =>
+  requestJson<BoardData>(
+    `/api/cards/${cardId}`,
+    {
+      method: "PATCH",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({ title, details }),
+    },
+    "Unable to update the card."
+  );
+
 export const deleteCard = (cardId: string) =>
   requestJson<BoardData>(
     `/api/cards/${cardId}`,

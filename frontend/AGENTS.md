@@ -25,7 +25,7 @@ This `frontend/` directory contains the current frontend for the Project Managem
 
 - `src/components/KanbanBoard.tsx`
   - Loads the board from the backend and updates local UI state from API responses.
-  - Handles drag and drop, renaming columns, adding cards, deleting cards, and AI-triggered board refreshes.
+  - Handles drag and drop, renaming columns, adding cards, editing cards, deleting cards, and AI-triggered board refreshes.
 - `src/components/AIChatSidebar.tsx`
   - Renders the sidebar chat UI, local message history, loading states, and AI request form.
 - `src/components/KanbanColumn.tsx`
@@ -51,6 +51,7 @@ This `frontend/` directory contains the current frontend for the Project Managem
 - Signed-in users see a single Kanban board with five seeded columns.
 - Users can rename columns inline.
 - Users can add cards to a column.
+- Users can edit card titles and details inline.
 - Users can delete cards.
 - Users can drag cards within a column and across columns.
 - Users can log out from the board header.

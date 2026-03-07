@@ -5,8 +5,8 @@
   "scripts": {
     "dev": "next dev",
     "build": "next build",
-    "start": "next start",
-    "serve:e2e": "npm run build && cd ../backend && uv run uvicorn app.main:app --host 127.0.0.1 --port 3100",
+    "start": "node -e \"console.error('This frontend is served by the FastAPI backend. Use docker compose up --build -d from the project root, or npm run dev for frontend-only development.'); process.exit(1)\"",
+    "serve:e2e": "npm run build && cd ../backend && uv run python -c \"import os, pathlib, tempfile, uvicorn; db_path = pathlib.Path(tempfile.gettempdir()) / 'pm-e2e.sqlite3'; db_path.unlink(missing_ok=True); os.environ.setdefault('SESSION_SECRET', 'test-e2e-session-secret'); os.environ['DATABASE_PATH'] = str(db_path); uvicorn.run('app.main:app', host='127.0.0.1', port=3100)\"",
     "lint": "eslint",
     "test": "vitest run",
     "test:unit": "vitest run",

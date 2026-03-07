@@ -12,6 +12,12 @@ For the MVP, the valid credentials are:
 - username: `user`
 - password: `password`
 
+All mutating API requests also require this header:
+
+- `X-Requested-With: fetch`
+
+Without that header, mutating routes return `403`.
+
 ## Routes
 
 ### `GET /api/health`
@@ -120,6 +126,8 @@ Notes:
 
 - if `columnId` changes and `position` is omitted, the card is appended to the target column
 - if only `position` is provided, the card is reordered within its current column
+- `title` must be non-empty when provided
+- `details` may be empty but must stay within the backend size limit
 
 ### `DELETE /api/cards/{card_id}`
 

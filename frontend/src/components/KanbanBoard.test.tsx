@@ -107,6 +107,50 @@ describe("KanbanBoard", () => {
     );
   });
 
+  it("edits a card through the backend API", async () => {
+    const updatedBoard = cloneBoard(initialData);
+    updatedBoard.cards["card-1"] = {
+      id: "card-1",
+      title: "Updated roadmap",
+      details: "Fresh delivery notes.",
+    };
+
+    const fetchMock = vi
+      .fn()
+      .mockResolvedValueOnce(createResponse(cloneBoard(initialData)))
+      .mockResolvedValueOnce(createResponse(updatedBoard));
+
+    vi.stubGlobal("fetch", fetchMock);
+
+    render(<KanbanBoard />);
+
+    const card = await screen.findByTestId("card-card-1");
+    await userEvent.click(within(card).getByRole("button", { name: /edit align roadmap themes/i }));
+
+    const titleInput = within(card).getByLabelText(/edit title for align roadmap themes/i);
+    await userEvent.clear(titleInput);
+    await userEvent.type(titleInput, "Updated roadmap");
+
+    const detailsInput = within(card).getByLabelText(/edit details for align roadmap themes/i);
+    await userEvent.clear(detailsInput);
+    await userEvent.type(detailsInput, "Fresh delivery notes.");
+
+    await userEvent.click(within(card).getByRole("button", { name: /save/i }));
+
+    await waitFor(() =>
+      expect(fetchMock).toHaveBeenLastCalledWith(
+        "/api/cards/card-1",
+        expect.objectContaining({
+          method: "PATCH",
+          credentials: "same-origin",
+        })
+      )
+    );
+
+    expect(await screen.findByText("Updated roadmap")).toBeInTheDocument();
+    expect(screen.getByText("Fresh delivery notes.")).toBeInTheDocument();
+  });
+
   it("shows AI replies and refreshes the board from the AI response", async () => {
     const aiBoard = cloneBoard(initialData);
     aiBoard.cards["card-ai"] = {
