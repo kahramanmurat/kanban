@@ -1,17 +1,10 @@
 from types import SimpleNamespace
 
-from fastapi.testclient import TestClient
-
 from app.ai import AIConnectivityError, CONNECTIVITY_PROMPT, run_connectivity_check
-from app.main import create_app
 from app.settings import DEFAULT_OPENAI_MODEL, get_settings
+from tests.conftest import create_client
 
 CSRF = {"X-Requested-With": "fetch"}
-
-
-def create_client(tmp_path, monkeypatch) -> TestClient:
-    monkeypatch.setenv("DATABASE_PATH", str(tmp_path / "pm-test.sqlite3"))
-    return TestClient(create_app())
 
 
 def test_get_settings_reads_openai_configuration(monkeypatch) -> None:

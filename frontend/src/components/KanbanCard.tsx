@@ -10,7 +10,7 @@ type KanbanCardProps = {
   onDelete: (cardId: string) => void;
 };
 
-export const KanbanCard = ({ card, onUpdate, onDelete }: KanbanCardProps) => {
+export function KanbanCard({ card, onUpdate, onDelete }: KanbanCardProps) {
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } =
     useSortable({ id: card.id });
   const [isEditing, setIsEditing] = useState(false);
@@ -133,4 +133,4 @@ export const KanbanCard = ({ card, onUpdate, onDelete }: KanbanCardProps) => {
       )}
     </article>
   );
-};
+}

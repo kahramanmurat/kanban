@@ -14,21 +14,22 @@ type AIChatSidebarProps = {
 
 const MAX_CHAT_HISTORY_MESSAGES = 12;
 
-const createMessageId = () =>
-  `msg-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 8)}`;
+function createMessageId(): string {
+  return `msg-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 8)}`;
+}
 
-const trimMessages = (messages: ChatEntry[]) =>
-  messages.slice(-MAX_CHAT_HISTORY_MESSAGES);
+function trimMessages(messages: ChatEntry[]): ChatEntry[] {
+  return messages.slice(-MAX_CHAT_HISTORY_MESSAGES);
+}
 
-const formatOperationSummary = (count: number) => {
+function formatOperationSummary(count: number): string {
   if (count === 0) {
     return "No board changes";
   }
-
   return count === 1 ? "1 board update applied" : `${count} board updates applied`;
-};
+}
 
-export const AIChatSidebar = ({ onSend }: AIChatSidebarProps) => {
+export function AIChatSidebar({ onSend }: AIChatSidebarProps) {
   const [messages, setMessages] = useState<ChatEntry[]>([]);
   const [draft, setDraft] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -109,8 +110,8 @@ export const AIChatSidebar = ({ onSend }: AIChatSidebarProps) => {
         {messages.length === 0 ? (
           <div className="flex flex-1 items-center justify-center rounded-xl border border-dashed border-[var(--stroke)] px-4 py-8 text-center">
             <p className="max-w-xs text-sm leading-6 text-[var(--gray-text)]">
-              Start with something like “summarize the board” or “move the QA card
-              to Done and add a follow-up task.”
+              Start with something like "summarize the board" or "move the QA card
+              to Done and add a follow-up task."
             </p>
           </div>
         ) : (
@@ -146,18 +147,15 @@ export const AIChatSidebar = ({ onSend }: AIChatSidebarProps) => {
       </div>
 
       <form onSubmit={(event) => void handleSubmit(event)} className="mt-3">
-        <label className="block">
-          <span className="sr-only">Ask AI to update the board</span>
-          <textarea
-            value={draft}
-            onChange={(event) => setDraft(event.target.value)}
-            onKeyDown={handleKeyDown}
-            placeholder="Ask the AI to update your board..."
-            rows={2}
-            className="w-full resize-none rounded-xl border border-[var(--stroke)] bg-white px-3.5 py-2.5 text-sm leading-6 text-[var(--navy-dark)] outline-none transition focus:border-[var(--primary-blue)]"
-            aria-label="Ask AI to update the board"
-          />
-        </label>
+        <textarea
+          value={draft}
+          onChange={(event) => setDraft(event.target.value)}
+          onKeyDown={handleKeyDown}
+          placeholder="Ask the AI to update your board..."
+          rows={2}
+          className="w-full resize-none rounded-xl border border-[var(--stroke)] bg-white px-3.5 py-2.5 text-sm leading-6 text-[var(--navy-dark)] outline-none transition focus:border-[var(--primary-blue)]"
+          aria-label="Ask AI to update the board"
+        />
         {error ? (
           <p className="mt-2 text-sm font-medium text-[var(--secondary-purple)]">{error}</p>
         ) : null}
@@ -176,4 +174,4 @@ export const AIChatSidebar = ({ onSend }: AIChatSidebarProps) => {
       </form>
     </aside>
   );
-};
+}

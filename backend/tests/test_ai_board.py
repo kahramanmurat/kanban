@@ -1,8 +1,6 @@
 import json
 from types import SimpleNamespace
 
-from fastapi.testclient import TestClient
-
 from app.ai import (
     AIResponseFormatError,
     ConversationMessage,
@@ -10,14 +8,9 @@ from app.ai import (
     build_board_prompt,
     parse_board_response,
 )
-from app.main import create_app
+from tests.conftest import create_client
 
 CSRF = {"X-Requested-With": "fetch"}
-
-
-def create_client(tmp_path, monkeypatch) -> TestClient:
-    monkeypatch.setenv("DATABASE_PATH", str(tmp_path / "pm-test.sqlite3"))
-    return TestClient(create_app())
 
 
 def create_fake_client(*responses: str):

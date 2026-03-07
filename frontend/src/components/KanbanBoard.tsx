@@ -29,7 +29,7 @@ import {
   updateCard,
 } from "@/lib/boardApi";
 
-export const KanbanBoard = () => {
+export function KanbanBoard() {
   const [board, setBoard] = useState<BoardData | null>(null);
   const [activeCardId, setActiveCardId] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(true);
@@ -141,34 +141,18 @@ export const KanbanBoard = () => {
   };
 
   const handleRenameColumn = (columnId: string, title: string) => {
-    if (!board) {
-      return;
-    }
-
     runMutation(() => renameColumn(columnId, title));
   };
 
   const handleAddCard = (columnId: string, title: string, details: string) => {
-    if (!board) {
-      return;
-    }
-
     runMutation(() => addCard(columnId, title, details));
   };
 
   const handleUpdateCard = (cardId: string, title: string, details: string) => {
-    if (!board) {
-      return;
-    }
-
     runMutation(() => updateCard(cardId, title, details));
   };
 
   const handleDeleteCard = (_columnId: string, cardId: string) => {
-    if (!board) {
-      return;
-    }
-
     runMutation(() => deleteCard(cardId));
   };
 
@@ -247,11 +231,9 @@ export const KanbanBoard = () => {
                 <path fillRule="evenodd" d="M2 3.75A.75.75 0 0 1 2.75 3h14.5a.75.75 0 0 1 0 1.5H2.75A.75.75 0 0 1 2 3.75zm0 4.167a.75.75 0 0 1 .75-.75h14.5a.75.75 0 0 1 0 1.5H2.75a.75.75 0 0 1-.75-.75zm0 4.166a.75.75 0 0 1 .75-.75h14.5a.75.75 0 0 1 0 1.5H2.75a.75.75 0 0 1-.75-.75zm0 4.167a.75.75 0 0 1 .75-.75h14.5a.75.75 0 0 1 0 1.5H2.75a.75.75 0 0 1-.75-.75z" clipRule="evenodd" />
               </svg>
             </div>
-            <div>
-              <h1 className="font-display text-xl font-semibold text-[var(--navy-dark)]">
-                Kanban Studio
-              </h1>
-            </div>
+            <h1 className="font-display text-xl font-semibold text-[var(--navy-dark)]">
+              Kanban Studio
+            </h1>
           </div>
           <div className="flex items-center gap-3">
             {isSaving ? (
@@ -306,4 +288,4 @@ export const KanbanBoard = () => {
       </main>
     </div>
   );
-};
+}

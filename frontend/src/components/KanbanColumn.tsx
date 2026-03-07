@@ -15,14 +15,14 @@ type KanbanColumnProps = {
   onDeleteCard: (columnId: string, cardId: string) => void;
 };
 
-export const KanbanColumn = ({
+export function KanbanColumn({
   column,
   cards,
   onRename,
   onAddCard,
   onUpdateCard,
   onDeleteCard,
-}: KanbanColumnProps) => {
+}: KanbanColumnProps) {
   const { setNodeRef, isOver } = useDroppable({ id: column.id });
   const [draftTitle, setDraftTitle] = useState(column.title);
 
@@ -88,4 +88,4 @@ export const KanbanColumn = ({
       />
     </section>
   );
-};
+}

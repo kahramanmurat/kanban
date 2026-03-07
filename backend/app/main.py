@@ -104,12 +104,6 @@ def is_authenticated(request: Request) -> bool:
 
 
 def get_current_username(request: Request) -> str:
-    if not is_authenticated(request):
-        raise HTTPException(
-            status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="Authentication required.",
-        )
-
     username = request.session.get("username")
     if not username:
         raise HTTPException(
@@ -171,25 +165,15 @@ def create_app() -> FastAPI:
     AI_RATE_LIMIT_SECONDS = 2.0
 
     @app.get("/", include_in_schema=False)
+    @app.get("/index.html", include_in_schema=False)
     def read_index(request: Request):
         if not is_authenticated(request):
             return RedirectResponse(url="/login", status_code=status.HTTP_303_SEE_OTHER)
         return FileResponse(resolve_page("index"))
 
-    @app.get("/index.html", include_in_schema=False)
-    def read_index_file(request: Request):
-        if not is_authenticated(request):
-            return RedirectResponse(url="/login", status_code=status.HTTP_303_SEE_OTHER)
-        return FileResponse(resolve_page("index"))
-
     @app.get("/login", include_in_schema=False)
-    def read_login(request: Request):
-        if is_authenticated(request):
-            return RedirectResponse(url="/", status_code=status.HTTP_303_SEE_OTHER)
-        return FileResponse(resolve_page("login"))
-
     @app.get("/login.html", include_in_schema=False)
-    def read_login_file(request: Request):
+    def read_login(request: Request):
         if is_authenticated(request):
             return RedirectResponse(url="/", status_code=status.HTTP_303_SEE_OTHER)
         return FileResponse(resolve_page("login"))

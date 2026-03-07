@@ -287,14 +287,14 @@ def serialize_board(connection: sqlite3.Connection, board_id: str) -> dict:
             "title": card["title"],
             "details": card["details"],
         }
-        card_ids_by_column.setdefault(card["column_id"], []).append(card_id)
+        card_ids_by_column[card["column_id"]].append(card_id)
 
     return {
         "columns": [
             {
                 "id": column["id"],
                 "title": column["title"],
-                "cardIds": card_ids_by_column.get(column["id"], []),
+                "cardIds": card_ids_by_column[column["id"]],
             }
             for column in columns
         ],

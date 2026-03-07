@@ -6,20 +6,11 @@ type LoginFormProps = {
   onAuthenticated?: () => void;
 };
 
-export const LoginForm = ({ onAuthenticated }: LoginFormProps) => {
+export function LoginForm({ onAuthenticated }: LoginFormProps) {
   const [username, setUsername] = useState("user");
   const [password, setPassword] = useState("password");
   const [error, setError] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
-
-  const handleSuccess = () => {
-    if (onAuthenticated) {
-      onAuthenticated();
-      return;
-    }
-
-    window.location.assign("/");
-  };
 
   const handleSubmit = async (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
@@ -42,7 +33,11 @@ export const LoginForm = ({ onAuthenticated }: LoginFormProps) => {
         return;
       }
 
-      handleSuccess();
+      if (onAuthenticated) {
+        onAuthenticated();
+      } else {
+        window.location.assign("/");
+      }
     } catch {
       setError("Unable to sign in right now.");
     } finally {
@@ -93,4 +88,4 @@ export const LoginForm = ({ onAuthenticated }: LoginFormProps) => {
       </button>
     </form>
   );
-};
+}

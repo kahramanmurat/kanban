@@ -6,18 +6,9 @@ type LogoutButtonProps = {
   onLoggedOut?: () => void;
 };
 
-export const LogoutButton = ({ onLoggedOut }: LogoutButtonProps) => {
+export function LogoutButton({ onLoggedOut }: LogoutButtonProps) {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState("");
-
-  const handleSuccess = () => {
-    if (onLoggedOut) {
-      onLoggedOut();
-      return;
-    }
-
-    window.location.assign("/login");
-  };
 
   const handleLogout = async () => {
     setError("");
@@ -35,7 +26,11 @@ export const LogoutButton = ({ onLoggedOut }: LogoutButtonProps) => {
         return;
       }
 
-      handleSuccess();
+      if (onLoggedOut) {
+        onLoggedOut();
+      } else {
+        window.location.assign("/login");
+      }
     } catch {
       setError("Unable to log out right now.");
     } finally {
@@ -60,4 +55,4 @@ export const LogoutButton = ({ onLoggedOut }: LogoutButtonProps) => {
       ) : null}
     </div>
   );
-};
+}

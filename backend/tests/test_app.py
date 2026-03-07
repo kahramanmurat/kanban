@@ -2,13 +2,9 @@ from fastapi.testclient import TestClient
 import pytest
 
 from app.main import create_app
+from tests.conftest import create_client
 
 CSRF = {"X-Requested-With": "fetch"}
-
-
-def create_client(tmp_path, monkeypatch) -> TestClient:
-    monkeypatch.setenv("DATABASE_PATH", str(tmp_path / "pm-test.sqlite3"))
-    return TestClient(create_app())
 
 
 def test_health_returns_expected_payload() -> None:

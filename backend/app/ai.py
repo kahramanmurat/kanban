@@ -244,12 +244,10 @@ def request_board_response(
 
 
 def apply_board_operations(
-    connection, username: str, board_change: BoardChange | None
+    connection, username: str, board: dict, board_change: BoardChange | None
 ) -> tuple[dict, list[dict]]:
     if board_change is None:
-        return get_board_for_username(connection, username), []
-
-    board = get_board_for_username(connection, username)
+        return board, []
     applied_operations: list[dict] = []
 
     try:
@@ -319,6 +317,7 @@ def run_board_assistant_turn(
     next_board, applied_operations = apply_board_operations(
         connection,
         username,
+        board,
         model_response.board_change,
     )
     return {
